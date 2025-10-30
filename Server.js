@@ -33,13 +33,44 @@ app.get("/api/test", async (req, res) => {
 // Example: Get all videos
 app.get("/api/videos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM videos ORDER BY created_at DESC");
+    const result = await pool.query(`
+      SELECT 
+        v.id,
+        v.title,
+        v.thumbnail AS thumbnail,
+        v.views,
+        u.username AS channel
+      FROM videos v
+      JOIN users u ON v.user_id = u.id
+      WHERE v.is_public = TRUE
+      ORDER BY v.created_at DESC
+    `);
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching videos:", err);
     res.status(500).json({ error: "Database error" });
   }
 });
+
+app.get("/api/videos/search", async (req, res) => {
+  const searchTerm = req.query.q;
+
+  try {
+    const results = await pool.query(
+      `SELECT id, title, thumbnail, views, created_at 
+       FROM videos 
+       WHERE LOWER(title) LIKE LOWER($1) OR LOWER(description) LIKE LOWER($1)
+       ORDER BY views DESC
+       LIMIT 20`,
+      [`%${searchTerm}%`]
+    );
+    res.json(results.rows);
+  } catch (err) {
+    console.error("Error during search:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

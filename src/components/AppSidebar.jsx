@@ -2,7 +2,7 @@ import { Home, Compass, PlaySquare, Clock, ThumbsUp, Flame, Music, Gamepad2, New
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
 const mainItems = [
-  { title: "Home", icon: Home, url: "#" },
+  { title: "Home", icon: Home, url: "/" },
   { title: "Explore", icon: Compass, url: "#" },
   { title: "Subscriptions", icon: PlaySquare, url: "#" },
 ];

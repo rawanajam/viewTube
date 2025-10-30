@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import SearchResults from "./components/SearchResults";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ function App() {
                 <Header />
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/search" element={<SearchResults/>}/>
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
