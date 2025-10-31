@@ -71,6 +71,19 @@ app.get("/api/videos/search", async (req, res) => {
   }
 });
 
+app.get("/api/videos/category/:category", async (req, res) => {
+  const { category } = req.params;
+  try {
+    const result = await pool.query("SELECT * FROM videos WHERE category = $1", [category]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching category videos:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

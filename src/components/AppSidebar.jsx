@@ -1,5 +1,27 @@
-import { Home, Compass, PlaySquare, Clock, ThumbsUp, Flame, Music, Gamepad2, Newspaper, Trophy } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import {
+  Home,
+  Compass,
+  PlaySquare,
+  Clock,
+  ThumbsUp,
+  Flame,
+  Music,
+  Gamepad2,
+  Newspaper,
+  Trophy,
+  Code, // ✅ <-- make sure this line is included
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
 
 const mainItems = [
   { title: "Home", icon: Home, url: "/" },
@@ -14,16 +36,18 @@ const libraryItems = [
 
 const exploreItems = [
   { title: "Trending", icon: Flame, url: "#" },
-  { title: "Music", icon: Music, url: "#" },
-  { title: "Gaming", icon: Gamepad2, url: "#" },
-  { title: "News", icon: Newspaper, url: "#" },
-  { title: "Sports", icon: Trophy, url: "#" },
+  { title: "Music", icon: Music, url: "/category/music" },
+  { title: "Gaming", icon: Gamepad2, url: "/category/gaming" },
+  { title: "Programming", icon: Code, url: "/category/programming" }, // ✅ now works
+  { title: "News", icon: Newspaper, url: "/category/news" },
+  { title: "Sports", icon: Trophy, url: "/category/sports" },
 ];
 
 export function AppSidebar() {
   return (
     <Sidebar className="border-r border-border pt-14">
       <SidebarContent>
+        {/* MAIN */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -41,6 +65,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* LIBRARY */}
         <SidebarGroup>
           <SidebarGroupLabel>Library</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -59,6 +84,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* EXPLORE */}
         <SidebarGroup>
           <SidebarGroupLabel>Explore</SidebarGroupLabel>
           <SidebarGroupContent>

@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SearchResults from "./components/SearchResults";
+import CategoryPage from "./CategoryPage";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/search" element={<SearchResults/>}/>
+                  <Route path="/category/:category" element={<CategoryPage/>}/>
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
