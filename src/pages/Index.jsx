@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { VideoCard } from "@/components/VideoCard";
+import { formatViews } from "../utils/formatViews";
 
 const Index = () => {
   const [videos, setVideos] = useState([]);
@@ -18,10 +19,11 @@ const Index = () => {
           {videos.map((video) => (
             <VideoCard
               key={video.id}
+              id={video.id}
               thumbnail={video.thumbnail}
               title={video.title}
               channel={video.channel}
-              views={`${(video.views / 1000000).toFixed(1)}M`}
+              views={formatViews(video.views)}
               timestamp="Just now"
               duration="10:00"
             />

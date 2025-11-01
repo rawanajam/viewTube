@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Link } from "react-router-dom";
 
-export const VideoCard = ({ thumbnail, title, channel, views, timestamp, duration }) => {
-  // ✅ Fallbacks for missing data
+export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, duration }) => {
   const safeTitle = title || "Untitled Video";
   const safeChannel = channel || "Unknown Channel";
   const safeThumbnail = thumbnail || "/placeholder.jpg";
@@ -10,7 +10,7 @@ export const VideoCard = ({ thumbnail, title, channel, views, timestamp, duratio
   const safeDuration = duration || "";
 
   return (
-    <div className="group cursor-pointer">
+    <Link to={`/video/${id}`} className="group cursor-pointer block">
       <div className="relative mb-3 overflow-hidden rounded-xl">
         <img
           src={safeThumbnail}
@@ -41,6 +41,6 @@ export const VideoCard = ({ thumbnail, title, channel, views, timestamp, duratio
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
