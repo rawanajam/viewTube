@@ -102,6 +102,104 @@ app.get("/api/videos/:id", async (req, res) => {
   }
 });
 
+// --- LIKE / DISLIKE ROUTES ---
+
+// Get total likes/dislikes for a video
+app.get("/api/videos/:id/reactions", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT 
+         SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes,
+         SUM(CASE WHEN type = 'dislike' THEN 1 ELSE 0 END) AS dislikes
+       FROM video_likes
+       WHERE video_id = $1`,
+      [id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching likes/dislikes" });
+  }
+});
+
+// Add or toggle like/dislike
+app.post("/api/videos/:id/reactions", async (req, res) => {
+  const { id } = req.params;
+  const { user_id, type } = req.body; // type = 'like' or 'dislike'
+
+  try {
+    const existing = await pool.query(
+      `SELECT * FROM video_likes WHERE user_id = $1 AND video_id = $2`,
+      [user_id, id]
+    );
+
+    if (existing.rows.length > 0) {
+      // If same type → remove, else update
+      if (existing.rows[0].type === type) {
+        await pool.query(
+          `DELETE FROM video_likes WHERE user_id = $1 AND video_id = $2`,
+          [user_id, id]
+        );
+        return res.json({ message: "Reaction removed" });
+      } else {
+        await pool.query(
+          `UPDATE video_likes SET type = $1 WHERE user_id = $2 AND video_id = $3`,
+          [type, user_id, id]
+        );
+        return res.json({ message: "Reaction updated" });
+      }
+    } else {
+      await pool.query(
+        `INSERT INTO video_likes (user_id, video_id, type) VALUES ($1, $2, $3)`,
+        [user_id, id, type]
+      );
+      return res.json({ message: "Reaction added" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error updating reaction" });
+  }
+});
+ // --- COMMENTS ROUTES ---
+
+// Get comments for a video
+app.get("/api/videos/:id/comments", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT c.id, c.content, c.created_at, u.username 
+       FROM comments c
+       JOIN users u ON c.user_id = u.id
+       WHERE c.video_id = $1
+       ORDER BY c.created_at DESC`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching comments" });
+  }
+});
+
+// Add new comment
+app.post("/api/videos/:id/comments", async (req, res) => {
+  const { id } = req.params;
+  const { user_id, content } = req.body;
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO comments (user_id, video_id, content)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [user_id, id, content]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error adding comment" });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
