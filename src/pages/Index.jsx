@@ -24,8 +24,8 @@ const Index = () => {
               title={video.title}
               channel={video.channel}
               views={formatViews(video.views)}
-              timestamp="Just now"
-              duration="10:00"
+              timestamp={new Date(video.created_at).toLocaleDateString()}
+              duration={video.duration || "00:00"}
             />
           ))}
         </div>

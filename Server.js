@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
+
 dotenv.config();
 
 const { Pool } = pkg;
@@ -23,7 +24,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 // Serve uploads folder
 app.use(
   "/uploads",
@@ -58,6 +59,7 @@ app.get("/api/videos", async (req, res) => {
         v.thumbnail,
         v.url,
         v.description,
+        v.duration,
         v.views,
         u.username AS channel
       FROM videos v
@@ -197,6 +199,57 @@ app.post("/api/videos/:id/comments", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error adding comment" });
+  }
+});
+
+// Like or Dislike a comment
+app.post("/api/comment/like", async (req, res) => {
+  const { user_id, comment_id, type } = req.body;
+
+  try {
+    // Check if the user already liked/disliked this comment
+    const existing = await pool.query(
+      "SELECT * FROM comment_likes WHERE user_id=$1 AND comment_id=$2",
+      [user_id, comment_id]
+    );
+
+    if (existing.rows.length > 0) {
+      // Update type (toggle)
+      await pool.query(
+        "UPDATE comment_likes SET type=$1, created_at=NOW() WHERE user_id=$2 AND comment_id=$3",
+        [type, user_id, comment_id]
+      );
+    } else {
+      // Insert new record
+      await pool.query(
+        "INSERT INTO comment_likes (user_id, comment_id, type, created_at) VALUES ($1, $2, $3, NOW())",
+        [user_id, comment_id, type]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error updating like/dislike" });
+  }
+});
+
+// Get like/dislike count for comments
+app.get("/api/comment/likes/:comment_id", async (req, res) => {
+  const { comment_id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT 
+        SUM(CASE WHEN type='like' THEN 1 ELSE 0 END) AS likes,
+        SUM(CASE WHEN type='dislike' THEN 1 ELSE 0 END) AS dislikes
+       FROM comment_likes
+       WHERE comment_id=$1`,
+      [comment_id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching comment likes" });
   }
 });
 
