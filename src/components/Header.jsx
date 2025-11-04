@@ -54,6 +54,11 @@ export const Header = () => {
     setShowDropdown(false);
   };
 
+  // 🔹 Redirect to Login page
+  const handleLoginClick = () => {
+    navigate("/login");
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-b border-border bg-background px-4 h-14">
       {/* Logo + Sidebar */}
@@ -125,7 +130,13 @@ export const Header = () => {
         <Button variant="ghost" size="icon" className="hover:bg-youtube-hover">
           <Bell className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-youtube-hover">
+        {/* 👇 Login Redirect Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full hover:bg-youtube-hover"
+          onClick={handleLoginClick}
+        >
           <User className="h-5 w-5" />
         </Button>
       </div>

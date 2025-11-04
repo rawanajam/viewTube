@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import SearchResults from "./components/SearchResults";
 import CategoryPage from "./CategoryPage";
 import VideoPage from "./pages/VideoPage";
+import LoginPage from "./pages/LoginPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
                   <Route path="/search" element={<SearchResults/>}/>
                   <Route path="/category/:category" element={<CategoryPage/>}/>
                   <Route path="/video/:id" element={<VideoPage/>}/>
+                  <Route path="/login" element={<LoginPage/>}/>
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

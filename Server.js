@@ -4,39 +4,139 @@ import pkg from "pg";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
 const { Pool } = pkg;
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+user: process.env.DB_USER,
+host: process.env.DB_HOST,
+database: process.env.DB_NAME,
+password: process.env.DB_PASSWORD,
+port: process.env.DB_PORT,
 });
 
-// Needed for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
-// Serve uploads folder
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "uploads"), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".mp4")) {
-        res.setHeader("Content-Type", "video/mp4");
-      }
-    },
-  })
-);
+app.use("/assets", express.static(path.join(__dirname, "assets")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
+
+// =================== AUTH ROUTES ===================
+
+// --- USER SIGNUP ---
+app.post("/api/signup", async (req, res) => {
+  const { email, password } = req.body;
+
+  console.log("🧠 Signup attempt:", email);
+
+  try {
+    // Check if the email is already registered
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new user into DB — notice we use password_hash here 👇
+    const result = await pool.query(
+      "INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING *",
+      [email, hashedPassword, "user"]
+    );
+
+    const user = result.rows[0];
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(201).json({
+      message: "Signup successful",
+      token,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error("❌ Signup error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// --- USER LOGIN ---
+app.post("/api/login", async (req, res) => {
+const { email, password } = req.body;
+if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+
+try {
+const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+if (result.rows.length === 0) return res.status(400).json({ message: "User not found" });
+
+const user = result.rows[0];
+const validPassword = await bcrypt.compare(password, user.password);
+if (!validPassword) return res.status(400).json({ message: "Invalid password" });
+
+const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, {
+  expiresIn: "24h",
+});
+
+res.json({ message: "Login successful", token, role: user.role });
+
+} catch (err) {
+console.error(err);
+res.status(500).json({ message: "Login error" });
+}
+});
+
+// --- ADMIN LOGIN ---
+app.post("/api/admin-login", async (req, res) => {
+const { email, password } = req.body;
+if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+
+try {
+const result = await pool.query("SELECT * FROM users WHERE email=$1 AND role='admin'", [email]);
+if (result.rows.length === 0) return res.status(400).json({ message: "Admin not found" });
+
+const admin = result.rows[0];
+const validPassword = await bcrypt.compare(password, admin.password);
+if (!validPassword) return res.status(400).json({ message: "Invalid password" });
+
+const token = jwt.sign({ id: admin.id, email: admin.email, role: admin.role }, SECRET_KEY, {
+  expiresIn: "24h",
+});
+
+res.json({ message: "Admin login successful", token, role: admin.role });
+
+} catch (err) {
+console.error(err);
+res.status(500).json({ message: "Admin login error" });
+}
+});
+
+// =================== TEST ROUTE ===================
+app.get("/api/test", async (req, res) => {
+try {
+const result = await pool.query("SELECT NOW()");
+res.json({ dbTime: result.rows[0] });
+} catch (err) {
+console.error(err);
+res.status(500).json({ error: "Database error" });
+}
+});
 
 // Test DB connection
 app.get("/api/test", async (req, res) => {
