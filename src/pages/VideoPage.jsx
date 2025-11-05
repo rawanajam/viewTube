@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { formatViews } from "../utils/formatViews";
-import { ThumbsUp, ThumbsDown, Share2, Download } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share2, Download , PlaySquare} from "lucide-react";
 
 const VideoPage = () => {
 const { id } = useParams();
@@ -106,6 +106,12 @@ return ( <main className="pt-16 min-h-screen bg-black text-white container mx-au
         <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700 transition">
           <Download size={18}/> Download
         </button>
+        <button
+          onClick={() => alert("Subscribed!")}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-300 hover:bg-gray-700 transition"
+        >
+          <PlaySquare size={18}/>Subscribe
+        </button>
       </div>
 
       <div className="bg-gray-900 rounded-lg p-4 mb-6">
@@ -117,14 +123,14 @@ return ( <main className="pt-16 min-h-screen bg-black text-white container mx-au
         <h2 className="font-semibold text-lg mb-4">Comments • {comments.length}</h2>
         <div className="flex gap-2 mb-4">
           <input type="text" placeholder="Add a comment..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className="flex-1 p-2 rounded-lg bg-gray-800 text-white outline-none"/>
-          <button onClick={handleComment} className="px-4 py-2 bg-emerald-500 rounded-lg text-black font-semibold hover:bg-emerald-600 transition">Post</button>
+          <button onClick={handleComment} className="px-4 py-2 bg-red-500 rounded-lg text-black font-semibold hover:bg-red-600 transition">Post</button>
         </div>
 
         {comments.length > 0 ? (
           <>
             {comments.slice(0, showAllComments ? comments.length : 1).map(c => <CommentItem key={c.id} comment={c} userId={userId} />)}
             {comments.length > 1 && (
-              <button onClick={() => setShowAllComments(!showAllComments)} className="text-emerald-500 hover:text-emerald-400 text-sm">
+              <button onClick={() => setShowAllComments(!showAllComments)} className="text-red-500 hover:text-red-400 text-sm">
                 {showAllComments ? "Show less comments" : `View all ${comments.length} comments`}
               </button>
             )}

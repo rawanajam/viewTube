@@ -10,6 +10,8 @@ import {
   Newspaper,
   Trophy,
   Code, // ✅ <-- make sure this line is included
+  Download,
+  icons,
 } from "lucide-react";
 
 import {
@@ -32,6 +34,7 @@ const mainItems = [
 const libraryItems = [
   { title: "History", icon: Clock, url: "#" },
   { title: "Liked Videos", icon: ThumbsUp, url: "#" },
+  { title: "Downloads", icon: Download, url:'#'},
 ];
 
 const exploreItems = [

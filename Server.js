@@ -1,3 +1,4 @@
+// ======== Server.js ========
 import express from "express";
 import cors from "cors";
 import pkg from "pg";
@@ -11,11 +12,11 @@ dotenv.config();
 
 const { Pool } = pkg;
 const pool = new Pool({
-user: process.env.DB_USER,
-host: process.env.DB_HOST,
-database: process.env.DB_NAME,
-password: process.env.DB_PASSWORD,
-port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,36 +34,35 @@ const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
 
 // --- USER SIGNUP ---
 app.post("/api/signup", async (req, res) => {
-  const { email, password } = req.body;
+  const { username, email, password } = req.body;
 
   console.log("🧠 Signup attempt:", email);
 
+  if (!username || !email || !password)
+    return res.status(400).json({ message: "All fields are required" });
+
   try {
-    // Check if the email is already registered
+    // Check if the email already exists
     const existingUser = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
     );
-
-    if (existingUser.rows.length > 0) {
+    if (existingUser.rows.length > 0)
       return res.status(400).json({ message: "User already exists" });
-    }
 
-    // Hash the password
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user into DB — notice we use password_hash here 👇
+    // Insert new user
     const result = await pool.query(
-      "INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING *",
-      [email, hashedPassword, "user"]
+      "INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING *",
+      [username, email, hashedPassword, "user"]
     );
 
     const user = result.rows[0];
-
-    // Generate JWT token
     const token = jwt.sign(
       { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
+      SECRET_KEY,
       { expiresIn: "1h" }
     );
 
@@ -79,66 +79,67 @@ app.post("/api/signup", async (req, res) => {
 
 // --- USER LOGIN ---
 app.post("/api/login", async (req, res) => {
-const { email, password } = req.body;
-if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+  const { email, password } = req.body;
 
-try {
-const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
-if (result.rows.length === 0) return res.status(400).json({ message: "User not found" });
+  if (!email || !password)
+    return res.status(400).json({ message: "Missing fields" });
 
-const user = result.rows[0];
-const validPassword = await bcrypt.compare(password, user.password);
-if (!validPassword) return res.status(400).json({ message: "Invalid password" });
+  try {
+    const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    if (result.rows.length === 0)
+      return res.status(400).json({ message: "User not found" });
 
-const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, SECRET_KEY, {
-  expiresIn: "24h",
-});
+    const user = result.rows[0];
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword)
+      return res.status(400).json({ message: "Invalid password" });
 
-res.json({ message: "Login successful", token, role: user.role });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      SECRET_KEY,
+      { expiresIn: "24h" }
+    );
 
-} catch (err) {
-console.error(err);
-res.status(500).json({ message: "Login error" });
-}
+    res.json({ message: "Login successful", token, role: user.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Login error" });
+  }
 });
 
 // --- ADMIN LOGIN ---
 app.post("/api/admin-login", async (req, res) => {
-const { email, password } = req.body;
-if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+  const { email, password } = req.body;
+  if (!email || !password)
+    return res.status(400).json({ message: "Missing fields" });
 
-try {
-const result = await pool.query("SELECT * FROM users WHERE email=$1 AND role='admin'", [email]);
-if (result.rows.length === 0) return res.status(400).json({ message: "Admin not found" });
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email=$1 AND role='admin'",
+      [email]
+    );
+    if (result.rows.length === 0)
+      return res.status(400).json({ message: "Admin not found" });
 
-const admin = result.rows[0];
-const validPassword = await bcrypt.compare(password, admin.password);
-if (!validPassword) return res.status(400).json({ message: "Invalid password" });
+    const admin = result.rows[0];
+    const validPassword = await bcrypt.compare(password, admin.password_hash);
+    if (!validPassword)
+      return res.status(400).json({ message: "Invalid password" });
 
-const token = jwt.sign({ id: admin.id, email: admin.email, role: admin.role }, SECRET_KEY, {
-  expiresIn: "24h",
+    const token = jwt.sign(
+      { id: admin.id, email: admin.email, role: admin.role },
+      SECRET_KEY,
+      { expiresIn: "24h" }
+    );
+
+    res.json({ message: "Admin login successful", token, role: admin.role });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Admin login error" });
+  }
 });
 
-res.json({ message: "Admin login successful", token, role: admin.role });
-
-} catch (err) {
-console.error(err);
-res.status(500).json({ message: "Admin login error" });
-}
-});
-
-// =================== TEST ROUTE ===================
-app.get("/api/test", async (req, res) => {
-try {
-const result = await pool.query("SELECT NOW()");
-res.json({ dbTime: result.rows[0] });
-} catch (err) {
-console.error(err);
-res.status(500).json({ error: "Database error" });
-}
-});
-
-// Test DB connection
+// --- TEST ROUTE ---
 app.get("/api/test", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -350,6 +351,35 @@ app.get("/api/comment/likes/:comment_id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error fetching comment likes" });
+  }
+});
+
+// ✅ Get videos by category
+app.get("/api/videos/category/:category", async (req, res) => {
+  const { category } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        v.id,
+        v.title,
+        v.thumbnail,
+        v.url,
+        v.description,
+        v.duration,
+        v.views,
+        u.username AS channel
+      FROM videos v
+      JOIN users u ON v.user_id = u.id
+      WHERE v.is_public = TRUE AND v.category = $1
+      ORDER BY v.created_at DESC`,
+      [category]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching videos by category:", err);
+    res.status(500).json({ error: "Error fetching videos by category" });
   }
 });
 
