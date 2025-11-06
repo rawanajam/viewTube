@@ -51,6 +51,7 @@ const LoginPage = () => {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
+      localStorage.setItem("user_id", res.data.user_id);
       navigate(res.data.role === "admin" ? "/admin" : "/");
     } catch {
       setError(

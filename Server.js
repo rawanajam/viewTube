@@ -70,6 +70,7 @@ app.post("/api/signup", async (req, res) => {
       message: "Signup successful",
       token,
       role: user.role,
+      user_id: user.id,
     });
   } catch (error) {
     console.error("❌ Signup error:", error);
@@ -100,7 +101,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role });
+    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id,});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login error" });
@@ -210,6 +211,8 @@ app.get("/api/videos/:id", async (req, res) => {
 // Get total likes/dislikes for a video
 app.get("/api/videos/:id/reactions", async (req, res) => {
   const { id } = req.params;
+  const { user_id } = req.query;
+
   try {
     const result = await pool.query(
       `SELECT 
@@ -219,10 +222,22 @@ app.get("/api/videos/:id/reactions", async (req, res) => {
        WHERE video_id = $1`,
       [id]
     );
-    res.json(result.rows[0]);
+
+    let userReaction = null;
+    if (user_id) {
+      const userRes = await pool.query(
+        `SELECT type FROM video_likes WHERE user_id = $1 AND video_id = $2`,
+        [user_id, id]
+      );
+      if (userRes.rows.length > 0) {
+        userReaction = userRes.rows[0].type;
+      }
+    }
+
+    res.json({ ...result.rows[0], userReaction });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Error fetching likes/dislikes" });
+    res.status(500).json({ error: "Error fetching reactions" });
   }
 });
 
@@ -353,6 +368,24 @@ app.get("/api/comment/likes/:comment_id", async (req, res) => {
     res.status(500).json({ error: "Error fetching comment likes" });
   }
 });
+// GET /api/comment/reaction/:commentId/:userId
+app.get("/api/comment/reaction/:commentId/:userId", async (req, res) => {
+  const { commentId, userId } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT type FROM comment_likes WHERE comment_id = $1 AND user_id = $2",
+      [commentId, userId]
+    );
+    if (result.rows.length > 0) {
+      res.json({ reaction: result.rows[0].type }); // 'like' or 'dislike'
+    } else {
+      res.json({ reaction: null });
+    }
+  } catch (err) {
+    console.error("Error fetching comment reaction:", err);
+    res.status(500).send("Server error");
+  }
+});
 
 // ✅ Get videos by category
 app.get("/api/videos/category/:category", async (req, res) => {
@@ -383,6 +416,51 @@ app.get("/api/videos/category/:category", async (req, res) => {
   }
 });
 
+// =================== SUBSCRIPTION ROUTES ===================
+
+// Check if user is subscribed to a channel
+app.get("/api/subscriptions/check", async (req, res) => {
+  const { user_id, channel_id } = req.query;
+  try {
+    const result = await pool.query(
+      "SELECT * FROM subscription WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+      [user_id, channel_id]
+    );
+    res.json({ subscribed: result.rows.length > 0 });
+  } catch (err) {
+    console.error("Error checking subscription:", err);
+    res.status(500).json({ error: "Error checking subscription" });
+  }
+});
+
+// Toggle subscription (subscribe/unsubscribe)
+app.post("/api/subscriptions/toggle", async (req, res) => {
+  const { user_id, channel_id } = req.body;
+
+  try {
+    const existing = await pool.query(
+      "SELECT * FROM subscription WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+      [user_id, channel_id]
+    );
+
+    if (existing.rows.length > 0) {
+      await pool.query(
+        "DELETE FROM subscriptions WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+        [user_id, channel_id]
+      );
+      return res.json({ subscribed: false });
+    } else {
+      await pool.query(
+        "INSERT INTO subscriptions (subscriber_id, subscribed_to_id, created_at) VALUES ($1, $2, NOW())",
+        [user_id, channel_id]
+      );
+      return res.json({ subscribed: true });
+    }
+  } catch (err) {
+    console.error("Error toggling subscription:", err);
+    res.status(500).json({ error: "Error toggling subscription" });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
