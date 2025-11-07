@@ -28,13 +28,13 @@ import {
 const mainItems = [
   { title: "Home", icon: Home, url: "/" },
   { title: "Explore", icon: Compass, url: "#" },
-  { title: "Subscriptions", icon: PlaySquare, url: "#" },
+  { title: "Subscriptions", icon: PlaySquare, url: "/subscriptions" },
 ];
 
 const libraryItems = [
   { title: "History", icon: Clock, url: "#" },
-  { title: "Liked Videos", icon: ThumbsUp, url: "#" },
-  { title: "Downloads", icon: Download, url:'#'},
+  { title: "Liked Videos", icon: ThumbsUp, url: "/liked-videos" },
+  { title: "Downloads", icon: Download, url:'/downloads'},
 ];
 
 const exploreItems = [

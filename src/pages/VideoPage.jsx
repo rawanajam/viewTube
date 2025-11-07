@@ -51,32 +51,30 @@ const VideoPage = () => {
   // Check subscription status
   useEffect(() => {
     if (!userId || !video?.user_id) return;
-    const checkSubscription = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/api/subscriptions/check`, {
-          params: { user_id: userId, channel_id: video.user_id },
-        });
-        setIsSubscribed(res.data.subscribed);
-      } catch (err) {
-        console.error("Error checking subscription:", err);
-      }
-    };
+    // When checking subscription
+      const checkSubscription = async () => {
+        try {
+          const res = await axios.get(`http://localhost:5000/api/subscriptions/check`, {
+            params: { user_id: userId, channel_id: video.channel_id },
+          });
+          setIsSubscribed(res.data.subscribed);
+        } catch (err) { console.error(err); }
+      };
+
     checkSubscription();
   }, [userId, video]);
 
   // Toggle subscription
   const handleSubscribe = async () => {
-    if (!userId) return alert("Please login to subscribe.");
-    try {
-      const res = await axios.post(`http://localhost:5000/api/subscriptions/toggle`, {
-        user_id: userId,
-        channel_id: video.user_id,
-      });
-      setIsSubscribed(res.data.subscribed);
-    } catch (err) {
-      console.error("Error subscribing:", err);
-    }
-  };
+  if (!userId) return alert("Please login to subscribe.");
+  try {
+    const res = await axios.post(`http://localhost:5000/api/subscriptions/toggle`, {
+      user_id: userId,
+      channel_id: video.channel_id,
+    });
+    setIsSubscribed(res.data.subscribed);
+  } catch (err) { console.error(err); }
+};
 
   // Handle like / dislike
   const handleReaction = async (type) => {
@@ -107,13 +105,22 @@ const VideoPage = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (!userId) return alert("Please login to download this video.");
-    const link = document.createElement("a");
-    link.href = `http://localhost:5000${video.videoUrl}`;
-    link.download = `${video.title}.mp4`;
-    link.click();
-  };
+const handleDownload = async () => {
+  if (!userId) return alert("Please login to download this video.");
+
+  try {
+    // Save download info in DB
+    await axios.post("http://localhost:5000/api/downloads", {
+      user_id: userId,
+      video_id: id,
+    });
+
+    alert("Video added to your downloads!");
+  } catch (err) {
+    console.error("Error saving download:", err);
+  }
+};
+
 
   const handleShare = async () => {
     const shareData = {
@@ -380,8 +387,8 @@ const CommentItem = ({ comment, userId }) => {
       <div className="flex gap-3 mt-1 text-gray-400 text-sm">
         <button
           onClick={() => handleReaction("like")}
-          className={`flex items-center gap-1 hover:text-green-500 transition ${
-            userReaction === "like" ? "text-green-500" : ""
+          className={`flex items-center gap-1 hover:text-red-500 transition ${
+            userReaction === "like" ? "text-red-500" : ""
           }`}
         >
           <ThumbsUp size={16} /> {likes}

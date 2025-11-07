@@ -163,9 +163,9 @@ app.get("/api/videos", async (req, res) => {
         v.description,
         v.duration,
         v.views,
-        u.username AS channel
+        c.name AS channel
       FROM videos v
-      JOIN users u ON v.user_id = u.id
+      JOIN channels c ON v.channel_id = c.id
       WHERE v.is_public = TRUE
       ORDER BY v.created_at DESC
     `);
@@ -179,17 +179,13 @@ app.get("/api/videos", async (req, res) => {
 // Get a single video by ID
 app.get("/api/videos/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("🎥 Received video ID:", id); // 👈 Add this line for debugging
-
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ error: "Invalid video ID" });
-  }
+  if (!id || isNaN(id)) return res.status(400).json({ error: "Invalid video ID" });
 
   try {
     const result = await pool.query(
-      `SELECT v.*, u.username AS channel 
+      `SELECT v.*, c.name AS channel 
        FROM videos v 
-       JOIN users u ON v.user_id = u.id 
+       JOIN channels c ON v.channel_id = c.id
        WHERE v.id = $1`,
       [id]
     );
@@ -198,7 +194,7 @@ app.get("/api/videos/:id", async (req, res) => {
       return res.status(404).json({ error: "Video not found" });
 
     const video = result.rows[0];
-    video.videoUrl = `/${video.url}`; // 👈 ensures proper URL
+    video.videoUrl = `/${video.url}`;
     res.json(video);
   } catch (err) {
     console.error(err);
@@ -416,36 +412,54 @@ app.get("/api/videos/category/:category", async (req, res) => {
   }
 });
 
-// =================== SUBSCRIPTION ROUTES ===================
+// =================== LIKED VIDEOS ROUTE ===================
+app.get("/api/likes/:userId", async (req, res) => {
+  const { userId } = req.params;
 
-// Check if user is subscribed to a channel
+  try {
+    const result = await pool.query(
+      `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration, u.username AS channel
+       FROM video_likes l
+       JOIN videos v ON l.video_id = v.id
+       JOIN users u ON v.user_id = u.id
+       WHERE l.user_id = $1 AND l.type = 'like'`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching liked videos:", err);
+    res.status(500).json({ error: "Error fetching liked videos" });
+  }
+});
+
+// =================== SUBSCRIBED VIDEOS ROUTE ===================
+// Check subscription
 app.get("/api/subscriptions/check", async (req, res) => {
   const { user_id, channel_id } = req.query;
   try {
     const result = await pool.query(
-      "SELECT * FROM subscription WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
       [user_id, channel_id]
     );
     res.json({ subscribed: result.rows.length > 0 });
   } catch (err) {
-    console.error("Error checking subscription:", err);
+    console.error(err);
     res.status(500).json({ error: "Error checking subscription" });
   }
 });
 
-// Toggle subscription (subscribe/unsubscribe)
+// Toggle subscription
 app.post("/api/subscriptions/toggle", async (req, res) => {
   const { user_id, channel_id } = req.body;
-
   try {
     const existing = await pool.query(
-      "SELECT * FROM subscription WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
       [user_id, channel_id]
     );
-
     if (existing.rows.length > 0) {
       await pool.query(
-        "DELETE FROM subscriptions WHERE subscriber_id = $1 AND subscribed_to_id = $2",
+        "DELETE FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
         [user_id, channel_id]
       );
       return res.json({ subscribed: false });
@@ -457,10 +471,78 @@ app.post("/api/subscriptions/toggle", async (req, res) => {
       return res.json({ subscribed: true });
     }
   } catch (err) {
-    console.error("Error toggling subscription:", err);
+    console.error(err);
     res.status(500).json({ error: "Error toggling subscription" });
   }
 });
+
+// Get subscribed videos
+app.get("/api/subscriptions/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration, c.name AS channel
+       FROM subscriptions s
+       JOIN videos v ON v.channel_id = s.subscribed_to_id
+       JOIN channels c ON v.channel_id = c.id
+       WHERE s.subscriber_id=$1
+       ORDER BY v.created_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error fetching subscribed videos" });
+  }
+});
+
+
+// ✅ Add a download (when user clicks Download)
+app.post("/api/downloads", async (req, res) => {
+  const { user_id, video_id } = req.body;
+
+  try {
+    const existing = await pool.query(
+      "SELECT * FROM downloads WHERE user_id = $1 AND video_id = $2",
+      [user_id, video_id]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.json({ message: "Already downloaded" });
+    }
+
+    const result = await pool.query(
+      "INSERT INTO downloads (user_id, video_id) VALUES ($1, $2) RETURNING *",
+      [user_id, video_id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error saving download:", err);
+    res.status(500).json({ error: "Error saving download" });
+  }
+});
+
+// ✅ Get all downloads for a user
+app.get("/api/downloads/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT v.* 
+       FROM downloads d
+       JOIN videos v ON d.video_id = v.id
+       WHERE d.user_id = $1
+       ORDER BY d.downloaded_at DESC`,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching downloads:", err);
+    res.status(500).json({ error: "Error fetching downloads" });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

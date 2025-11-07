@@ -12,6 +12,9 @@ import SearchResults from "./components/SearchResults";
 import CategoryPage from "./CategoryPage";
 import VideoPage from "./pages/VideoPage";
 import LoginPage from "./pages/LoginPage";
+import LikedVideosPage from "./pages/LikedVideosPage";
+import DownloadsPage from "./pages/DownloadsPage";
+import SubscriptionsPage from "./pages/SubscriptionsPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -32,6 +35,9 @@ function App() {
                   <Route path="/category/:category" element={<CategoryPage/>}/>
                   <Route path="/video/:id" element={<VideoPage/>}/>
                   <Route path="/login" element={<LoginPage/>}/>
+                  <Route path="/liked-videos" element={<LikedVideosPage />} />
+                  <Route path="/subscriptions" element={<SubscriptionsPage />} />
+                  <Route path="/downloads" element={<DownloadsPage />} />
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
