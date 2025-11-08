@@ -155,24 +155,16 @@ app.get("/api/test", async (req, res) => {
 app.get("/api/videos", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        v.id,
-        v.title,
-        v.thumbnail,
-        v.url,
-        v.description,
-        v.duration,
-        v.views,
-        c.name AS channel
+      SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
+             c.name AS channel
       FROM videos v
-      JOIN channels c ON v.channel_id = c.id
-      WHERE v.is_public = TRUE
+      LEFT JOIN channels c ON v.channel_id = c.id
       ORDER BY v.created_at DESC
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Database error" });
+    console.error("Error fetching videos:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -386,31 +378,22 @@ app.get("/api/comment/reaction/:commentId/:userId", async (req, res) => {
 // ✅ Get videos by category
 app.get("/api/videos/category/:category", async (req, res) => {
   const { category } = req.params;
-
   try {
-    const result = await pool.query(
-      `SELECT 
-        v.id,
-        v.title,
-        v.thumbnail,
-        v.url,
-        v.description,
-        v.duration,
-        v.views,
-        u.username AS channel
+    const result = await pool.query(`
+      SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
+             c.name AS channel
       FROM videos v
-      JOIN users u ON v.user_id = u.id
-      WHERE v.is_public = TRUE AND v.category = $1
-      ORDER BY v.created_at DESC`,
-      [category]
-    );
-
+      LEFT JOIN channels c ON v.channel_id = c.id
+      WHERE v.category = $1
+      ORDER BY v.created_at DESC
+    `, [category]);
     res.json(result.rows);
   } catch (err) {
     console.error("❌ Error fetching videos by category:", err);
-    res.status(500).json({ error: "Error fetching videos by category" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // =================== LIKED VIDEOS ROUTE ===================
 app.get("/api/likes/:userId", async (req, res) => {
@@ -481,14 +464,17 @@ app.get("/api/subscriptions/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration, c.name AS channel
-       FROM subscriptions s
-       JOIN videos v ON v.channel_id = s.subscribed_to_id
-       JOIN channels c ON v.channel_id = c.id
-       WHERE s.subscriber_id=$1
-       ORDER BY v.created_at DESC`,
-      [userId]
-    );
+  `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration,
+          COALESCE(c.name, u.username) AS channel
+   FROM subscriptions s
+   JOIN videos v ON v.user_id = s.subscribed_to_id
+   LEFT JOIN channels c ON v.channel_id = c.id
+   LEFT JOIN users u ON v.user_id = u.id
+   WHERE s.subscriber_id = $1
+   ORDER BY v.created_at DESC`,
+  [userId]
+);
+
     res.json(result.rows);
   } catch (err) {
     console.error(err);

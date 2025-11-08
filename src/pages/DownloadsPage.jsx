@@ -34,13 +34,16 @@ const DownloadsPage = () => {
             >
               <img
                 src={
-                  video.thumbnail
-                    ? `http://localhost:5000${video.thumbnail}`
+                    video.thumbnail
+                    ? video.thumbnail.startsWith("/assets")
+                        ? video.thumbnail
+                        : `http://localhost:5000/uploads/${video.thumbnail}`
                     : "/assets/placeholder.jpg"
                 }
                 alt={video.title}
                 className="w-full h-40 object-cover"
-              />
+                />
+
               <div className="p-3">
                 <p className="font-semibold text-sm text-white line-clamp-2">
                   {video.title}

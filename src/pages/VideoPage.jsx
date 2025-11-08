@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { formatViews } from "../utils/formatViews";
+import { formatTimeAgo } from "../utils/formatTimeAgo";
 import { ThumbsUp, ThumbsDown, Share2, Download, PlaySquare } from "lucide-react";
 
 const VideoPage = () => {
@@ -66,15 +67,17 @@ const VideoPage = () => {
 
   // Toggle subscription
   const handleSubscribe = async () => {
-  if (!userId) return alert("Please login to subscribe.");
-  try {
-    const res = await axios.post(`http://localhost:5000/api/subscriptions/toggle`, {
-      user_id: userId,
-      channel_id: video.channel_id,
-    });
-    setIsSubscribed(res.data.subscribed);
-  } catch (err) { console.error(err); }
-};
+    if (!userId) return alert("Please login to subscribe.");
+    try {
+      const res = await axios.post(`http://localhost:5000/api/subscriptions/toggle`, {
+        user_id: userId,
+        channel_id: video.user_id,
+      });
+      setIsSubscribed(res.data.subscribed);
+    } catch (err) {
+      console.error("Error subscribing:", err);
+    }
+  };
 
   // Handle like / dislike
   const handleReaction = async (type) => {
@@ -171,7 +174,7 @@ const handleDownload = async () => {
             <p>{video.channel}</p>
             <p>
               {formatViews(video.views)} views •{" "}
-              {new Date(video.created_at).toLocaleDateString()}
+              {formatTimeAgo(video.created_at)}
             </p>
           </div>
 

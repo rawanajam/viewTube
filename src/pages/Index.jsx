@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { VideoCard } from "@/components/VideoCard";
 import { formatViews } from "../utils/formatViews";
+import { formatTimeAgo } from "../utils/formatTimeAgo";
 
 const Index = () => {
   const [videos, setVideos] = useState([]);
@@ -24,7 +25,7 @@ const Index = () => {
               title={video.title}
               channel={video.channel}
               views={formatViews(video.views)}
-              timestamp={new Date(video.created_at).toLocaleDateString()}
+              timestamp={formatTimeAgo(video.created_at)}
               duration={video.duration || "00:00"}
             />
           ))}
