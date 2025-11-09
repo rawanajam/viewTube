@@ -27,9 +27,12 @@ const VideoPage = () => {
         const videoRes = await axios.get(`http://localhost:5000/api/videos/${id}`);
         setVideo(videoRes.data);
 
-        const reactionsRes = await axios.get(`http://localhost:5000/api/videos/${id}/reactions`);
+        const reactionsRes = await axios.get(`http://localhost:5000/api/videos/${id}/reactions`,{
+          params: { user_id: userId }
+        });
         setLikes(Number(reactionsRes.data.likes) || 0);
         setDislikes(Number(reactionsRes.data.dislikes) || 0);
+        setUserAction(reactionsRes.data.userReaction);
 
         const commentsRes = await axios.get(`http://localhost:5000/api/videos/${id}/comments`);
         setComments(commentsRes.data);
@@ -51,7 +54,7 @@ const VideoPage = () => {
 
   // Check subscription status
   useEffect(() => {
-    if (!userId || !video?.user_id) return;
+    if (!userId || !video?.channel_id) return;
     // When checking subscription
       const checkSubscription = async () => {
         try {
@@ -71,7 +74,7 @@ const VideoPage = () => {
     try {
       const res = await axios.post(`http://localhost:5000/api/subscriptions/toggle`, {
         user_id: userId,
-        channel_id: video.user_id,
+        channel_id: video.channel_id,
       });
       setIsSubscribed(res.data.subscribed);
     } catch (err) {
@@ -83,7 +86,7 @@ const VideoPage = () => {
   const handleReaction = async (type) => {
     if (!userId) return alert("Please login to react.");
     try {
-      await axios.post(`http://localhost:5000/api/videos/${id}/reactions`, { user_id: userId, type });
+      await axios.post(`http://localhost:5000/api/videos/${id}/reaction`, { user_id: userId, type });
       if (type === "like") {
         if (userAction === "like") {
           setLikes((prev) => Math.max(prev - 1, 0));
@@ -182,23 +185,26 @@ const handleDownload = async () => {
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <button
               onClick={() => handleReaction("like")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
-                userAction === "like"
-                  ? "bg-gray-700 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full transition bg-gray-800"
             >
-              <ThumbsUp size={18} /> {likes}
+              <ThumbsUp
+                size={18}
+                className={userAction === "like" ? "text-white-500" : "text-gray-300"}
+                fill={userAction === "like" ? "currentColor" : "none"}
+              />
+              {likes}
             </button>
+
             <button
               onClick={() => handleReaction("dislike")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
-                userAction === "dislike"
-                  ? "bg-gray-700 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full transition bg-gray-800"
             >
-              <ThumbsDown size={18} /> {dislikes}
+              <ThumbsDown
+                size={18}
+                className={userAction === "dislike" ? "text-white-500" : "text-gray-300"}
+                fill={userAction === "dislike" ? "currentColor" : "none"}
+              />
+              {dislikes}
             </button>
             <button
               onClick={handleShare}
@@ -216,12 +222,14 @@ const handleDownload = async () => {
               onClick={handleSubscribe}
               className={`flex items-center gap-2 px-4 py-2 rounded-full transition ${
                 isSubscribed
-                  ? "bg-red-600 text-white hover:bg-red-500"
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
                   : "bg-gray-800 text-gray-300 hover:bg-gray-700"
               }`}
             >
               <PlaySquare size={18} /> {isSubscribed ? "Subscribed" : "Subscribe"}
             </button>
+
+
           </div>
 
           {/* Description */}
@@ -387,24 +395,36 @@ const CommentItem = ({ comment, userId }) => {
     <div className="mb-4 border-b border-gray-700 pb-2">
       <p className="text-sm font-medium text-gray-200">{comment.username}</p>
       <p className="text-gray-400">{comment.content}</p>
-      <div className="flex gap-3 mt-1 text-gray-400 text-sm">
+      <div className="flex gap-3 mt-2 text-sm">
         <button
           onClick={() => handleReaction("like")}
-          className={`flex items-center gap-1 hover:text-red-500 transition ${
-            userReaction === "like" ? "text-red-500" : ""
+          className={`flex items-center gap-2 px-3 py-1 rounded-full transition bg-gray-800 ${
+            userReaction === "like" ? "text-white" : "text-gray-300"
           }`}
         >
-          <ThumbsUp size={16} /> {likes}
+          <ThumbsUp
+            size={16}
+            className={userReaction === "like" ? "text-white" : "text-gray-300"}
+            fill={userReaction === "like" ? "currentColor" : "none"}
+          />
+          {likes}
         </button>
+
         <button
           onClick={() => handleReaction("dislike")}
-          className={`flex items-center gap-1 hover:text-red-500 transition ${
-            userReaction === "dislike" ? "text-red-500" : ""
+          className={`flex items-center gap-2 px-3 py-1 rounded-full transition bg-gray-800 ${
+            userReaction === "dislike" ? "text-white" : "text-gray-300"
           }`}
         >
-          <ThumbsDown size={16} /> {dislikes}
+          <ThumbsDown
+            size={16}
+            className={userReaction === "dislike" ? "text-white" : "text-gray-300"}
+            fill={userReaction === "dislike" ? "currentColor" : "none"}
+          />
+          {dislikes}
         </button>
       </div>
+
     </div>
   );
 };

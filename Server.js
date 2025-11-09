@@ -204,69 +204,68 @@ app.get("/api/videos/:id/reactions", async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT 
-         SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes,
-         SUM(CASE WHEN type = 'dislike' THEN 1 ELSE 0 END) AS dislikes
+         COUNT(*) FILTER (WHERE type = 'like') AS likes,
+         COUNT(*) FILTER (WHERE type = 'dislike') AS dislikes
        FROM video_likes
        WHERE video_id = $1`,
       [id]
     );
 
-    let userReaction = null;
-    if (user_id) {
-      const userRes = await pool.query(
-        `SELECT type FROM video_likes WHERE user_id = $1 AND video_id = $2`,
-        [user_id, id]
-      );
-      if (userRes.rows.length > 0) {
-        userReaction = userRes.rows[0].type;
-      }
-    }
+    const userReaction = await pool.query(
+      "SELECT type FROM video_likes WHERE video_id = $1 AND user_id = $2",
+      [id, user_id]
+    );
 
-    res.json({ ...result.rows[0], userReaction });
+    res.json({
+      likes: Number(result.rows[0].likes),
+      dislikes: Number(result.rows[0].dislikes),
+      userReaction: userReaction.rows[0]?.type || null,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error fetching reactions:", err);
     res.status(500).json({ error: "Error fetching reactions" });
   }
 });
 
+
 // Add or toggle like/dislike
-app.post("/api/videos/:id/reactions", async (req, res) => {
-  const { id } = req.params;
+app.post("/api/videos/:id/reaction", async (req, res) => {
+  const { id } = req.params; // video_id
   const { user_id, type } = req.body; // type = 'like' or 'dislike'
 
   try {
     const existing = await pool.query(
-      `SELECT * FROM video_likes WHERE user_id = $1 AND video_id = $2`,
+      "SELECT * FROM video_likes WHERE user_id = $1 AND video_id = $2",
       [user_id, id]
     );
 
     if (existing.rows.length > 0) {
-      // If same type → remove, else update
       if (existing.rows[0].type === type) {
-        await pool.query(
-          `DELETE FROM video_likes WHERE user_id = $1 AND video_id = $2`,
-          [user_id, id]
-        );
-        return res.json({ message: "Reaction removed" });
+        // same reaction again → remove it
+        await pool.query("DELETE FROM video_likes WHERE user_id = $1 AND video_id = $2", [user_id, id]);
+        return res.json({ removed: true });
       } else {
+        // switch like ↔ dislike
         await pool.query(
-          `UPDATE video_likes SET type = $1 WHERE user_id = $2 AND video_id = $3`,
+          "UPDATE video_likes SET type = $1 WHERE user_id = $2 AND video_id = $3",
           [type, user_id, id]
         );
-        return res.json({ message: "Reaction updated" });
       }
     } else {
+      // new reaction
       await pool.query(
-        `INSERT INTO video_likes (user_id, video_id, type) VALUES ($1, $2, $3)`,
+        "INSERT INTO video_likes (user_id, video_id, type) VALUES ($1, $2, $3)",
         [user_id, id, type]
       );
-      return res.json({ message: "Reaction added" });
     }
+
+    res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error updating reaction" });
+    console.error("❌ Error setting reaction:", err);
+    res.status(500).json({ error: "Error setting reaction" });
   }
 });
+
  // --- COMMENTS ROUTES ---
 
 // Get comments for a video
@@ -398,31 +397,40 @@ app.get("/api/videos/category/:category", async (req, res) => {
 // =================== LIKED VIDEOS ROUTE ===================
 app.get("/api/likes/:userId", async (req, res) => {
   const { userId } = req.params;
-
   try {
     const result = await pool.query(
-      `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration, u.username AS channel
+      `SELECT 
+          v.id, 
+          v.title, 
+          v.thumbnail, 
+          v.duration, 
+          v.views, 
+          v.created_at,
+          c.name AS channel
        FROM video_likes l
        JOIN videos v ON l.video_id = v.id
-       JOIN users u ON v.user_id = u.id
-       WHERE l.user_id = $1 AND l.type = 'like'`,
+       JOIN channels c ON v.channel_id = c.id
+       WHERE l.user_id = $1 AND LOWER(l.type) = 'like'
+       ORDER BY v.created_at DESC`,
       [userId]
     );
 
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching liked videos:", err);
-    res.status(500).json({ error: "Error fetching liked videos" });
+    console.error("Error fetching liked videos:", err);
+    res.status(500).json({ error: "Failed to fetch liked videos" });
   }
 });
 
+
 // =================== SUBSCRIBED VIDEOS ROUTE ===================
 // Check subscription
+// Check if a user is subscribed to a channel
 app.get("/api/subscriptions/check", async (req, res) => {
   const { user_id, channel_id } = req.query;
   try {
     const result = await pool.query(
-      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
+      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND channel_id=$2",
       [user_id, channel_id]
     );
     res.json({ subscribed: result.rows.length > 0 });
@@ -432,23 +440,23 @@ app.get("/api/subscriptions/check", async (req, res) => {
   }
 });
 
-// Toggle subscription
+// Toggle subscription (subscribe/unsubscribe)
 app.post("/api/subscriptions/toggle", async (req, res) => {
   const { user_id, channel_id } = req.body;
   try {
     const existing = await pool.query(
-      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
+      "SELECT * FROM subscriptions WHERE subscriber_id=$1 AND channel_id=$2",
       [user_id, channel_id]
     );
     if (existing.rows.length > 0) {
       await pool.query(
-        "DELETE FROM subscriptions WHERE subscriber_id=$1 AND subscribed_to_id=$2",
+        "DELETE FROM subscriptions WHERE subscriber_id=$1 AND channel_id=$2",
         [user_id, channel_id]
       );
       return res.json({ subscribed: false });
     } else {
       await pool.query(
-        "INSERT INTO subscriptions (subscriber_id, subscribed_to_id, created_at) VALUES ($1, $2, NOW())",
+        "INSERT INTO subscriptions (subscriber_id, channel_id, created_at) VALUES ($1, $2, NOW())",
         [user_id, channel_id]
       );
       return res.json({ subscribed: true });
@@ -459,29 +467,27 @@ app.post("/api/subscriptions/toggle", async (req, res) => {
   }
 });
 
-// Get subscribed videos
-app.get("/api/subscriptions/:userId", async (req, res) => {
+// Get subscribed channels for a user
+app.get("/api/subscriptions/:userId/channels", async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-  `SELECT v.id, v.title, v.thumbnail, v.url, v.description, v.duration,
-          COALESCE(c.name, u.username) AS channel
-   FROM subscriptions s
-   JOIN videos v ON v.user_id = s.subscribed_to_id
-   LEFT JOIN channels c ON v.channel_id = c.id
-   LEFT JOIN users u ON v.user_id = u.id
-   WHERE s.subscriber_id = $1
-   ORDER BY v.created_at DESC`,
-  [userId]
-);
+      `SELECT c.id, c.name, c.avatar,
+              COUNT(s2.subscriber_id) AS subscriber_count
+       FROM subscriptions s
+       JOIN channels c ON s.channel_id = c.id
+       LEFT JOIN subscriptions s2 ON s2.channel_id = c.id
+       WHERE s.subscriber_id = $1
+       GROUP BY c.id`,
+      [userId]
+    );
 
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error fetching subscribed videos" });
+    console.error("Error fetching subscribed channels:", err);
+    res.status(500).json({ error: "Error fetching subscriptions" });
   }
 });
-
 
 // ✅ Add a download (when user clicks Download)
 app.post("/api/downloads", async (req, res) => {
@@ -526,6 +532,48 @@ app.get("/api/downloads/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error fetching downloads:", err);
     res.status(500).json({ error: "Error fetching downloads" });
+  }
+});
+
+// Get channel info
+app.get("/api/channels/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT c.id, c.name, COUNT(s.subscriber_id) AS subscriber_count
+       FROM channels c
+       LEFT JOIN subscriptions s ON s.channel_id = c.id
+       WHERE c.id = $1
+       GROUP BY c.id, c.name`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Channel not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching channel:", err);
+    res.status(500).json({ error: "Failed to fetch channel" });
+  }
+});
+
+// Get videos of a specific channel
+app.get("/api/channels/:id/videos", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT id, title, thumbnail
+       FROM videos
+       WHERE channel_id = $1
+       ORDER BY created_at DESC`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching channel videos:", err);
+    res.status(500).json({ error: "Failed to fetch channel videos" });
   }
 });
 

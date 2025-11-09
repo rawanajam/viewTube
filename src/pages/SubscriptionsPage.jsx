@@ -1,35 +1,52 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { VideoCard } from "@/components/VideoCard";
+import { Link } from "react-router-dom";
 
 const SubscriptionsPage = () => {
-  const [videos, setVideos] = useState([]);
-  const userId = localStorage.getItem("userId");
+  const [channels, setChannels] = useState([]);
+  const userId = localStorage.getItem("user_id"); // make sure the key matches your storage
 
   useEffect(() => {
-    const fetchSubscribedVideos = async () => {
+    const fetchSubscribedChannels = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/subscriptions/${userId}`);
-        setVideos(response.data);
-      } catch (error) {
-        console.error("Error fetching subscribed videos:", error);
+        const res = await axios.get(`http://localhost:5000/api/subscriptions/${userId}/channels`);
+        setChannels(res.data);
+      } catch (err) {
+        console.error("Error fetching subscriptions:", err);
       }
     };
 
-    if (userId) fetchSubscribedVideos();
+    if (userId) fetchSubscribedChannels();
   }, [userId]);
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Subscribed Channels</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {videos.length > 0 ? (
-          videos.map((video) => <VideoCard key={video.id} {...video} />)
-        ) : (
-          <p>No videos from subscribed channels yet.</p>
-        )}
-      </div>
-    </div>
+    <main className="pt-16 min-h-screen bg-black text-white container mx-auto px-4">
+      <h2 className="text-2xl font-semibold mb-6">Your Subscriptions</h2>
+      {channels.length > 0 ? (
+        <ul className="space-y-4">
+          {channels.map((channel) => (
+            <li
+              key={channel.id}
+              className="flex items-center justify-between p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition"
+            >
+              <div className="flex items-center gap-4">
+                <img
+                  src={channel.avatar || "/assets/channel-placeholder.jpg"}
+                  alt={channel.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <Link to={`/channel/${channel.id}`} className="text-white font-medium hover:underline">
+                  {channel.name}
+                </Link>
+              </div>
+              <span className="text-gray-400">{channel.subscriber_count} subscribers</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500">You are not subscribed to any channels yet.</p>
+      )}
+    </main>
   );
 };
 
