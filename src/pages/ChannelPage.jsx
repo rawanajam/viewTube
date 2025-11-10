@@ -32,15 +32,23 @@ const ChannelPage = () => {
       {/* Channel header */}
       <div className="flex items-center gap-4 mb-6">
         <img
-          src={channel.avatar || "/assets/channel-placeholder.jpg"}
+          src={
+            channel.avatar
+              ? `http://localhost:5000/${channel.avatar}`
+              : "/assets/channel-placeholder.jpg"
+          }
           alt={channel.name}
           className="w-16 h-16 rounded-full object-cover"
         />
         <div>
           <h1 className="text-2xl font-semibold">{channel.name}</h1>
           <p className="text-gray-400">{channel.subscriber_count} subscribers</p>
+          {channel.description && (
+            <p className="text-gray-300 mt-2 max-w-xl">{channel.description}</p>
+          )}
         </div>
       </div>
+
 
       {/* Videos */}
       <h2 className="text-xl font-semibold mb-4">Videos</h2>

@@ -27,18 +27,18 @@ import {
 
 const mainItems = [
   { title: "Home", icon: Home, url: "/" },
-  { title: "Explore", icon: Compass, url: "#" },
+  { title: "Explore", icon: Compass, url: "/explore" },
   { title: "Subscriptions", icon: PlaySquare, url: "/subscriptions" },
 ];
 
 const libraryItems = [
-  { title: "History", icon: Clock, url: "#" },
+  { title: "History", icon: Clock, url: "/history" },
   { title: "Liked Videos", icon: ThumbsUp, url: "/liked-videos" },
   { title: "Downloads", icon: Download, url:'/downloads'},
 ];
 
 const exploreItems = [
-  { title: "Trending", icon: Flame, url: "#" },
+  { title: "Trending", icon: Flame, url: "/trending" },
   { title: "Music", icon: Music, url: "/category/music" },
   { title: "Gaming", icon: Gamepad2, url: "/category/gaming" },
   { title: "Programming", icon: Code, url: "/category/programming" }, // ✅ now works

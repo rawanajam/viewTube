@@ -16,6 +16,9 @@ import LikedVideosPage from "./pages/LikedVideosPage";
 import DownloadsPage from "./pages/DownloadsPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import ChannelPage from "./pages/ChannelPage";
+import TrendingPage from "./pages/TrendingPage";
+import ExplorePage from "./pages/ExplorePage";
+import HistoryPage from "./pages/HistoryPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -40,6 +43,9 @@ function App() {
                   <Route path="/subscriptions" element={<SubscriptionsPage />} />
                   <Route path="/downloads" element={<DownloadsPage />} />
                   <Route path="/channel/:id" element={<ChannelPage />} />
+                  <Route path="/trending" element={<TrendingPage />} />
+                  <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/history" element={<HistoryPage />} />
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

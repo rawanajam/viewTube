@@ -14,13 +14,14 @@ const SearchResults = () => {
         // Map backend data to match VideoCard props
         const mappedVideos = res.data.map((v) => ({
           id: v.id,
-          thumbnail: v.thumbnail, // or v.thumbnail_url if you store full URL
+          thumbnail: v.thumbnail ? `http://localhost:5000/uploads/${v.thumbnail}` : "/assets/placeholder.jpg",
           title: v.title,
-          channel: v.user_name || v.channel || "Unknown", // make sure backend sends uploader name
+          channel: v.channel || "Unknown",
           views: v.views,
-          timestamp: v.created_at, // or format as "2 days ago"
-          duration: v.duration || "0:00", // optional
+          timestamp: v.created_at,
+          duration: v.duration || "0:00",
         }));
+
         setVideos(mappedVideos);
       } catch (error) {
         console.error("Error fetching search results:", error);

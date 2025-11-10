@@ -24,7 +24,9 @@ const VideoPage = () => {
     if (!id) return;
     const fetchVideoData = async () => {
       try {
-        const videoRes = await axios.get(`http://localhost:5000/api/videos/${id}`);
+        const videoRes = await axios.get(`http://localhost:5000/api/videos/${id}`, {
+      params: { userId }, // ✅ send userId in query
+    });
         setVideo(videoRes.data);
 
         const reactionsRes = await axios.get(`http://localhost:5000/api/videos/${id}/reactions`,{

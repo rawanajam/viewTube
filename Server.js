@@ -171,6 +171,8 @@ app.get("/api/videos", async (req, res) => {
 // Get a single video by ID
 app.get("/api/videos/:id", async (req, res) => {
   const { id } = req.params;
+  const userId = req.query.userId; // <-- make sure this matches frontend
+
   if (!id || isNaN(id)) return res.status(400).json({ error: "Invalid video ID" });
 
   try {
@@ -186,10 +188,28 @@ app.get("/api/videos/:id", async (req, res) => {
       return res.status(404).json({ error: "Video not found" });
 
     const video = result.rows[0];
-    video.videoUrl = `/${video.url}`;
+    video.videoUrl = video.url ? `/${video.url}` : ""; // <-- safety check
+
+    // Only insert history if userId exists
+    if (userId) {
+      try {
+                await pool.query(
+          `INSERT INTO history (user_id, video_id, watched_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (user_id, video_id)
+          DO UPDATE SET watched_at = NOW()`,
+          [userId, id]
+        );
+
+      } catch (historyErr) {
+        console.error("Error inserting history:", historyErr);
+        // do NOT throw, just log it
+      }
+    }
+
     res.json(video);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching video:", err);
     res.status(500).json({ error: "Error fetching video" });
   }
 });
@@ -472,13 +492,13 @@ app.get("/api/subscriptions/:userId/channels", async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT c.id, c.name, c.avatar,
+      `SELECT c.id, c.name, c.avatar, c.description,
               COUNT(s2.subscriber_id) AS subscriber_count
        FROM subscriptions s
        JOIN channels c ON s.channel_id = c.id
        LEFT JOIN subscriptions s2 ON s2.channel_id = c.id
        WHERE s.subscriber_id = $1
-       GROUP BY c.id`,
+       GROUP BY c.id, c.name, c.avatar, c.description`,
       [userId]
     );
 
@@ -540,11 +560,12 @@ app.get("/api/channels/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
-      `SELECT c.id, c.name, COUNT(s.subscriber_id) AS subscriber_count
+      `SELECT c.id, c.name, c.avatar, c.description,
+              COUNT(s.subscriber_id) AS subscriber_count
        FROM channels c
        LEFT JOIN subscriptions s ON s.channel_id = c.id
        WHERE c.id = $1
-       GROUP BY c.id, c.name`,
+       GROUP BY c.id, c.name, c.avatar, c.description`,
       [id]
     );
 
@@ -576,6 +597,85 @@ app.get("/api/channels/:id/videos", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch channel videos" });
   }
 });
+// trending videos
+app.get("/api/trending", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT v.id, v.title, v.thumbnail, v.views, v.created_at,
+             c.name AS channel, c.avatar
+      FROM videos v
+      JOIN channels c ON v.channel_id = c.id
+      ORDER BY v.views DESC
+      LIMIT 20
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching trending videos:", err);
+    res.status(500).json({ error: "Failed to fetch trending videos" });
+  }
+});
+
+app.get("/api/explore", async (req, res) => {
+  const categories = [
+    { name: "Trending", image: "/assets/trending.png", path: "/trending" },
+    { name: "Music", image: "/assets/music.png", path: "/category/music" },
+    { name: "Gaming", image: "/assets/gaming.png", path: "/category/gaming" },
+    { name: "Programming", image: "/assets/programming.png", path: "/category/programming" },
+    { name: "News", image: "/assets/news.png", path: "/category/news" },
+    { name: "Sports", image: "/assets/sports.png", path: "/category/sports" },
+  ];
+  res.json(categories);
+});
+
+// GET /api/history/:userId
+app.get("/api/history/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const result = await pool.query(
+      `
+      SELECT h.video_id AS id, v.title, v.thumbnail, v.duration, v.views, v.created_at,
+             c.name AS channel
+      FROM history h
+      JOIN videos v ON h.video_id = v.id
+      LEFT JOIN channels c ON v.channel_id = c.id
+      WHERE h.user_id = $1
+      ORDER BY h.watched_at DESC
+      `,
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching history:", err);
+    res.status(500).json({ error: "Failed to fetch history" });
+  }
+});
+
+// Search videos
+app.get("/api/videos/search", async (req, res) => {
+  const searchTerm = req.query.q;
+  if (!searchTerm) return res.json([]);
+
+  try {
+    const results = await pool.query(
+      `SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
+              c.name AS channel
+       FROM videos v
+       LEFT JOIN channels c ON v.channel_id = c.id
+       WHERE LOWER(v.title) LIKE LOWER($1) 
+          OR LOWER(COALESCE(v.description, '')) LIKE LOWER($1)
+       ORDER BY v.views DESC
+       LIMIT 20`,
+      [`%${searchTerm}%`]
+    );
+
+    res.json(results.rows);
+  } catch (err) {
+    console.error("Error during search:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 
 const PORT = process.env.PORT || 5000;
