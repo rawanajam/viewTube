@@ -249,6 +249,7 @@ app.get("/api/videos/:id/reactions", async (req, res) => {
 
 
 // Add or toggle like/dislike
+// Add or toggle like/dislike
 app.post("/api/videos/:id/reaction", async (req, res) => {
   const { id } = req.params; // video_id
   const { user_id, type } = req.body; // type = 'like' or 'dislike'
@@ -277,6 +278,31 @@ app.post("/api/videos/:id/reaction", async (req, res) => {
         "INSERT INTO video_likes (user_id, video_id, type) VALUES ($1, $2, $3)",
         [user_id, id, type]
       );
+
+      // ✅ Send notification only for likes
+      if (type === "like") {
+        // 1️⃣ Find the video owner (the uploader)
+        const videoResult = await pool.query(
+          "SELECT user_id FROM videos WHERE id = $1",
+          [id]
+        );
+        const targetUserId = videoResult.rows[0]?.user_id;
+
+        if (targetUserId && targetUserId !== user_id) {
+          // 2️⃣ Get liker’s username
+          const userResult = await pool.query(
+            "SELECT username FROM users WHERE id = $1",
+            [user_id]
+          );
+          const username = userResult.rows[0]?.username || "Someone";
+
+          // 3️⃣ Insert notification
+          await pool.query(
+            "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
+            [targetUserId, `${username} liked your video`]
+          );
+        }
+      }
     }
 
     res.json({ success: true });
@@ -672,6 +698,28 @@ app.get("/api/videos/search", async (req, res) => {
   } catch (err) {
     console.error("Error during search:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// GET /api/notifications/:userId
+// ✅ GET user notifications
+app.get("/api/notifications/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  // if userId is missing or "null" → return error
+  if (!userId || userId === "null") {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC",
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: "Failed to fetch notifications" });
   }
 });
 

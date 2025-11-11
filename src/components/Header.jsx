@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
+import NotificationsButton from "../pages/NotificationsButton";
 
 export const Header = () => {
   const { toggleSidebar } = useSidebar();
@@ -127,9 +128,8 @@ export const Header = () => {
         <Button variant="ghost" size="icon" className="hover:bg-youtube-hover">
           <Video className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="hover:bg-youtube-hover">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationsButton/>
+
         {/* 👇 Login Redirect Button */}
         <Button
           variant="ghost"
