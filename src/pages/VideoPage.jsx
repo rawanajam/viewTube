@@ -256,7 +256,7 @@ const handleDownload = async () => {
               />
               <button
                 onClick={handleComment}
-                className="px-4 py-2 bg-red-500 rounded-lg text-black font-semibold hover:bg-red-600 transition"
+                className="px-4 py-2 bg-red-600 rounded-lg text-black font-semibold hover:bg-red-600 transition"
               >
                 Post
               </button>
@@ -272,7 +272,7 @@ const handleDownload = async () => {
                 {comments.length > 1 && (
                   <button
                     onClick={() => setShowAllComments(!showAllComments)}
-                    className="text-red-500 hover:text-red-400 text-sm"
+                    className="text-red-600 hover:text-red-400 text-sm"
                   >
                     {showAllComments
                       ? "Show less comments"
