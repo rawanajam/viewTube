@@ -71,6 +71,8 @@ app.post("/api/signup", async (req, res) => {
       token,
       role: user.role,
       user_id: user.id,
+      username: user.username,
+      avatar: user.avatar || null ,
     });
   } catch (error) {
     console.error("❌ Signup error:", error);
@@ -101,7 +103,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id,});
+    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login error" });
@@ -167,6 +169,31 @@ app.get("/api/videos", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ====== PUT SEARCH ROUTE FIRST ======
+app.get("/api/videos/search", async (req, res) => {
+  const searchTerm = req.query.q;
+  if (!searchTerm) return res.json([]);
+
+  try {
+    const results = await pool.query(
+      `SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
+              c.name AS channel
+       FROM videos v
+       LEFT JOIN channels c ON v.channel_id = c.id
+       WHERE LOWER(v.title) LIKE LOWER($1)
+          OR LOWER(c.name) LIKE LOWER($1)
+       ORDER BY v.created_at DESC`,
+      [`%${searchTerm}%`]
+    );
+
+    res.json(results.rows);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 // Get a single video by ID
 app.get("/api/videos/:id", async (req, res) => {
@@ -673,31 +700,6 @@ app.get("/api/history/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error fetching history:", err);
     res.status(500).json({ error: "Failed to fetch history" });
-  }
-});
-
-// Search videos
-app.get("/api/videos/search", async (req, res) => {
-  const searchTerm = req.query.q;
-  if (!searchTerm) return res.json([]);
-
-  try {
-    const results = await pool.query(
-      `SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
-              c.name AS channel
-       FROM videos v
-       LEFT JOIN channels c ON v.channel_id = c.id
-       WHERE LOWER(v.title) LIKE LOWER($1) 
-          OR LOWER(COALESCE(v.description, '')) LIKE LOWER($1)
-       ORDER BY v.views DESC
-       LIMIT 20`,
-      [`%${searchTerm}%`]
-    );
-
-    res.json(results.rows);
-  } catch (err) {
-    console.error("Error during search:", err);
-    res.status(500).json({ message: "Server error" });
   }
 });
 

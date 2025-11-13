@@ -52,6 +52,17 @@ const LoginPage = () => {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
       localStorage.setItem("user_id", res.data.user_id);
+
+      if (res.data.role === "user") {
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: res.data.user_id,
+            username: res.data.username,   // make sure backend returns username
+            avatar: res.data.avatar || null // optional, if you have avatar URL
+          })
+        );
+      }
       navigate(res.data.role === "admin" ? "/admin" : "/user-home");
     } catch {
       setError(

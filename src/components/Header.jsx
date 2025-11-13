@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, Menu, Video, Bell, User } from "lucide-react";
+import { Search, Menu, Video, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -12,53 +12,59 @@ export const Header = () => {
   const [input, setInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Load user from localStorage and react to changes
   useEffect(() => {
-    if (!location.pathname.startsWith("/search")) {
-      setInput("");
-    }
-  }, [location]);
-
-  // fetch live suggestions with debounce
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (input.trim() === "") {
-        setSuggestions([]);
-        return;
-      }
-
-      try {
-        const res = await axios.get(`http://localhost:5000/api/videos/search?q=${input}`);
-        setSuggestions(res.data.slice(0, 5)); // show top 5 results
-      } catch (error) {
-        console.error("Suggestion error:", error);
-      }
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      setUser(storedUser ? JSON.parse(storedUser) : null);
     };
 
+    loadUser();
+    window.addEventListener("storage", loadUser);
+    return () => window.removeEventListener("storage", loadUser);
+  }, []);
+
+  // Reset search input if path changes
+  useEffect(() => {
+    if (!location.pathname.startsWith("/search")) setInput("");
+  }, [location]);
+
+  // Fetch live suggestions with debounce
+  useEffect(() => {
+    if (!input.trim()) return setSuggestions([]);
+    const fetchSuggestions = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/videos/search?q=${input}`
+        );
+        setSuggestions(res.data.slice(0, 5)); // top 5
+      } catch (error) {
+        console.error("Suggestion fetch error:", error);
+      }
+    };
     const delay = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(delay);
   }, [input]);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (input.trim() !== "") {
+    if (input.trim()) {
       navigate(`/search?q=${encodeURIComponent(input.trim())}`);
       setShowDropdown(false);
     }
   };
 
-  const handleSuggestionClick = (title) => {
-    setInput(title);
-    navigate(`/search?q=${title}`);
+  const handleSuggestionClick = (video) => {
+    setInput(video.title);
+    navigate(`/video/${video.id}`);
     setShowDropdown(false);
   };
 
-  // 🔹 Redirect to Login page
-  const handleLoginClick = () => {
-    navigate("/login");
-  };
+  const handleLoginClick = () => navigate("/login");
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 border-b border-border bg-background px-4 h-14">
@@ -95,7 +101,7 @@ export const Header = () => {
                 setShowDropdown(true);
               }}
               onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 300)}
               className="w-full bg-secondary border-border pl-4 pr-4 h-10 focus-visible:ring-1 focus-visible:ring-primary"
             />
 
@@ -104,7 +110,7 @@ export const Header = () => {
                 {suggestions.map((video) => (
                   <li
                     key={video.id}
-                    onClick={() => handleSuggestionClick(video.title)}
+                    onClick={() => handleSuggestionClick(video)}
                     className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
                   >
                     {video.title}
@@ -113,6 +119,7 @@ export const Header = () => {
               </ul>
             )}
           </div>
+
           <Button
             type="submit"
             size="icon"
@@ -123,22 +130,35 @@ export const Header = () => {
         </div>
       </form>
 
-      {/* Icons */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="hover:bg-youtube-hover">
-          <Video className="h-5 w-5" />
-        </Button>
-        <NotificationsButton/>
+          {/* Icons */}
+          <div className="flex items-center gap-2">
+            <NotificationsButton />
 
-        {/* 👇 Login Redirect Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-youtube-hover"
-          onClick={handleLoginClick}
-        >
-          <User className="h-5 w-5" />
-        </Button>
+          <Button
+      variant="ghost"
+      size="icon"
+      className="rounded-full hover:bg-youtube-hover"
+      onClick={user ? () => navigate(`/UserHomePage`) : handleLoginClick}
+      title={user?.username || "Login"}
+    >
+  {user ? (
+    user.avatar ? (
+      <img
+        src={user.avatar}
+        alt={user.username || "User"}
+        className="h-6 w-6 rounded-full object-cover"
+      />
+    ) : (
+      <span className="h-6 w-6 flex items-center justify-center rounded-full bg-primary text-background font-bold text-sm">
+        {user.username ? user.username.charAt(0).toUpperCase() : "U"}
+      </span>
+    )
+  ) : (
+    <User className="h-5 w-5" />
+  )}
+</Button>
+
+
       </div>
     </header>
   );
