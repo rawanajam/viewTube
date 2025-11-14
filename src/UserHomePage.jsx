@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { VideoCard } from "@/components/VideoCard";
-import { Play, Music, Gamepad2, Flame, Newspaper, Download, Clock, ThumbsUp, LogOut } from "lucide-react";
+import { Play, ThumbsUp, Clock, Download, LogOut } from "lucide-react";
 
 const UserHomePage = () => {
   const [user, setUser] = useState(null); // store user info
@@ -9,32 +8,22 @@ const UserHomePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const userRes = await axios.get("http://localhost:5000/api/me", { withCredentials: true });
-        setUser(userRes.data);
+    const storedUser = localStorage.getItem("user");
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    setUser(parsedUser);
 
-        if (userRes.data.channel_id) {
-          const videoRes = await axios.get(`http://localhost:5000/api/videos?channel=${userRes.data.channel_id}`);
-          setVideos(videoRes.data);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (parsedUser?.channel_id) {
+      const storedVideos = localStorage.getItem("videos");
+      setVideos(storedVideos ? JSON.parse(storedVideos) : []);
+    }
 
-    fetchUserData();
+    setLoading(false);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await axios.post("http://localhost:5000/api/logout", {}, { withCredentials: true });
-      window.location.reload();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    window.location.href = "/login";
   };
 
   if (loading) {
@@ -48,7 +37,7 @@ const UserHomePage = () => {
   return (
     <div className="w-full min-h-screen bg-background text-foreground pt-14">
       {/* Profile Section */}
-      <div className="flex items-center gap-4 py-6 border-b border-neutral-800">
+      <div className="flex items-center gap-4 py-6 border-b border-neutral-800 px-4">
         {/* Avatar or First Letter */}
         {user?.avatar ? (
           <img
@@ -58,7 +47,7 @@ const UserHomePage = () => {
           />
         ) : (
           <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold border-2 border-red-600">
-            {user?.username?.[0].toUpperCase() || "U"}
+            {user?.username?.charAt(0).toUpperCase() || "U"}
           </div>
         )}
 
@@ -69,7 +58,7 @@ const UserHomePage = () => {
 
         {/* Conditional buttons */}
         {!user?.channel_id && (
-          <button className="ml-auto bg-red-600 hover:bg-emerald-600 text-black font-semibold px-4 py-2 rounded">
+          <button className="ml-auto bg-red-600 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded">
             Create Channel
           </button>
         )}
@@ -83,11 +72,11 @@ const UserHomePage = () => {
       </div>
 
       {/* User Navigation Tabs */}
-      <div className="flex gap-3 overflow-x-auto py-3 border-b border-neutral-800 sticky top-14 bg-background z-10">
+      <div className="flex gap-3 overflow-x-auto py-3 border-b border-neutral-800 sticky top-14 bg-background z-10 px-4">
         {[
           { icon: <Play className="h-4 w-4" />, label: "Videos" },
           { icon: <ThumbsUp className="h-4 w-4" />, label: "Likes" },
-          { icon: <Clock className="h-4 w-4" />, label: "History" ,},
+          { icon: <Clock className="h-4 w-4" />, label: "History" },
           { icon: <Download className="h-4 w-4" />, label: "Downloads" },
         ].map((tab, i) => (
           <button
@@ -102,7 +91,7 @@ const UserHomePage = () => {
 
       {/* User Videos (if any) */}
       {user?.channel_id ? (
-        <div className="grid gap-6 mt-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <div className="grid gap-6 mt-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 px-4">
           {videos.length > 0 ? (
             videos.map((video) => (
               <VideoCard

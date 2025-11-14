@@ -135,28 +135,33 @@ export const Header = () => {
             <NotificationsButton />
 
           <Button
-      variant="ghost"
-      size="icon"
-      className="rounded-full hover:bg-youtube-hover"
-      onClick={user ? () => navigate(`/UserHomePage`) : handleLoginClick}
-      title={user?.username || "Login"}
-    >
+  variant="ghost"
+  size="icon"
+  className="rounded-full hover:bg-youtube-hover"
+  onClick={() => {
+    if (user) navigate("/user-home");
+    else navigate("/login");
+  }}
+  title={user?.username || "Login"}
+>
   {user ? (
     user.avatar ? (
       <img
         src={user.avatar}
-        alt={user.username || "User"}
-        className="h-6 w-6 rounded-full object-cover"
+        alt="avatar"
+        className="h-8 w-8 rounded-full object-cover"
       />
     ) : (
-      <span className="h-6 w-6 flex items-center justify-center rounded-full bg-primary text-background font-bold text-sm">
-        {user.username ? user.username.charAt(0).toUpperCase() : "U"}
-      </span>
+      <div className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-white font-semibold">
+        {user.username?.charAt(0).toUpperCase() || "U"}
+      </div>
     )
   ) : (
-    <User className="h-5 w-5" />
+    <User className="h-6 w-6" />
   )}
 </Button>
+
+
 
 
       </div>

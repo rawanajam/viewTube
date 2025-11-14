@@ -725,7 +725,41 @@ app.get("/api/notifications/:userId", async (req, res) => {
   }
 });
 
+app.post("/api/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: false, // true in production with https
+    sameSite: "lax",
+    path: "/",     // must match your cookie path
+  });
 
+  return res.json({ message: "Logged out successfully" });
+});
+
+// GET /api/me
+app.get("/api/me", async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: "Not logged in" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const result = await pool.query(
+      "SELECT id, username, email, channel_id, avatar, created_at FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error /api/me:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 
 const PORT = process.env.PORT || 5000;
