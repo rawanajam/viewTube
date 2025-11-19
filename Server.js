@@ -761,6 +761,29 @@ app.get("/api/me", async (req, res) => {
   }
 });
 
+// Get all videos for a specific channel
+app.get("/api/channel/:channelId/videos", async (req, res) => {
+  const { channelId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
+              c.name AS channel
+       FROM videos v
+       LEFT JOIN channels c ON v.channel_id = c.id
+       WHERE v.channel_id = $1
+       ORDER BY v.created_at DESC`,
+      [channelId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching channel videos:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
