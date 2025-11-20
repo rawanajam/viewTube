@@ -37,9 +37,8 @@ const UserHomePage = () => {
 
   const fetchMyVideos = async () => {
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/channel/${user.channel_id}/videos`
-      );
+      const res = await axios.get(`http://localhost:5000/api/channels/${channelId}/videos`)
+
       console.log("CHANNEL VIDEOS:", res.data); // DEBUG
       setVideos(res.data);
       localStorage.setItem("videos", JSON.stringify(res.data));
