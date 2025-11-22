@@ -73,6 +73,7 @@ app.post("/api/signup", async (req, res) => {
       user_id: user.id,
       username: user.username,
       avatar: user.avatar || null ,
+      created_at: user.created_at
     });
   } catch (error) {
     console.error("❌ Signup error:", error);
@@ -103,7 +104,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,});
+    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,created_at: user.created_at});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login error" });
@@ -762,32 +763,21 @@ app.get("/api/me", async (req, res) => {
 });
 
 // Get all videos for a specific channel
-app.get("/api/channels/:id/videos", async (req, res) => {
-  const { id } = req.params;
+app.get("/api/videos/channel/:channelId", async (req, res) => {
+  const { channelId } = req.params;
+
   try {
     const result = await pool.query(
-      `SELECT 
-          v.id, 
-          v.title, 
-          v.thumbnail,
-          v.views, 
-          v.created_at, 
-          v.duration,
-          c.name AS channel
-       FROM videos v
-       LEFT JOIN channels c ON v.channel_id = c.id
-       WHERE v.channel_id = $1
-       ORDER BY v.created_at DESC`,
-      [id]
+      "SELECT * FROM videos WHERE channel_id = $1",
+      [channelId]
     );
 
     res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching channel videos:", err);
-    res.status(500).json({ error: "Failed to fetch channel videos" });
+  } catch (error) {
+    console.error("Error fetching channel videos:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 
 const PORT = process.env.PORT || 5000;

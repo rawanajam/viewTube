@@ -59,7 +59,8 @@ const LoginPage = () => {
           JSON.stringify({
             id: res.data.user_id,
             username: res.data.username,   // make sure backend returns username
-            avatar: res.data.avatar || null // optional, if you have avatar URL
+            avatar: res.data.avatar || null, // optional, if you have avatar URL
+            joined: res.data.created_at
           })
         );
       }

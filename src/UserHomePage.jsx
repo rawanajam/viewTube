@@ -37,7 +37,8 @@ const UserHomePage = () => {
 
   const fetchMyVideos = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/channels/${channelId}/videos`)
+      const res = await axios.get(`http://localhost:5000/api/videos/channel/${user.channel_id}`);
+
 
       console.log("CHANNEL VIDEOS:", res.data); // DEBUG
       setVideos(res.data);
@@ -128,7 +129,7 @@ const UserHomePage = () => {
 
         <div>
           <h2 className="text-xl font-semibold">{user?.username || "Username"}</h2>
-          <p className="text-gray-400 text-sm">Joined {user?.joined || "Jan 2025"}</p>
+          <p className="text-gray-400 text-sm">Joined {new Date(user?.joined).toLocaleString("default", { month: "long", year: "numeric" })}</p>
         </div>
 
         {/* Conditional buttons */}
