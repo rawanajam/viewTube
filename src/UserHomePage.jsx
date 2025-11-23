@@ -18,7 +18,6 @@ const UserHomePage = () => {
   const [videosD, setDVideos] = useState([]);
   const userId = localStorage.getItem("user_id");
 
-
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const parsedUser = storedUser ? JSON.parse(storedUser) : null;
@@ -33,25 +32,24 @@ const UserHomePage = () => {
   }, []);
 
   useEffect(() => {
-  if (!user?.channel_id) return;
+    if (!user?.channel_id) return;
 
-  const fetchMyVideos = async () => {
-    try {
-      const res = await axios.get(`http://localhost:5000/api/videos/channel/${user.channel_id}`);
+    const fetchMyVideos = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/videos/channel/${user.channel_id}`
+        );
 
+        console.log("CHANNEL VIDEOS:", res.data);
+        setVideos(res.data);
+        localStorage.setItem("videos", JSON.stringify(res.data));
+      } catch (err) {
+        console.error("Error fetching channel videos:", err);
+      }
+    };
 
-      console.log("CHANNEL VIDEOS:", res.data); // DEBUG
-      setVideos(res.data);
-      localStorage.setItem("videos", JSON.stringify(res.data));
-    } catch (err) {
-      console.error("Error fetching channel videos:", err);
-    }
-  };
-
-  fetchMyVideos();
-}, [user]);
-
-
+    fetchMyVideos();
+  }, [user]);
 
   useEffect(() => {
     const fetchLikedVideos = async () => {
@@ -83,6 +81,7 @@ const UserHomePage = () => {
 
   useEffect(() => {
     if (!userId) return;
+
     const fetchDownloads = async () => {
       try {
         const res = await axios.get(`http://localhost:5000/api/downloads/${userId}`);
@@ -93,7 +92,6 @@ const UserHomePage = () => {
     };
     fetchDownloads();
   }, [userId]);
-
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -114,7 +112,8 @@ const UserHomePage = () => {
     <div className="w-full min-h-screen bg-background text-foreground pt-14">
       {/* Profile Section */}
       <div className="flex items-center gap-4 py-6 border-b border-neutral-800 px-4">
-        {/* Avatar or First Letter */}
+
+        {/* Avatar */}
         {user?.avatar ? (
           <img
             src={user.avatar}
@@ -129,15 +128,34 @@ const UserHomePage = () => {
 
         <div>
           <h2 className="text-xl font-semibold">{user?.username || "Username"}</h2>
-          <p className="text-gray-400 text-sm">Joined {new Date(user?.joined).toLocaleString("default", { month: "long", year: "numeric" })}</p>
+          <p className="text-gray-400 text-sm">
+            Joined{" "}
+            {new Date(user?.joined).toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
         </div>
 
+        {/* HERE IS THE UPDATED PART */}
         {/* Conditional buttons */}
-        {!user?.channel_id && (
-          <button className="ml-auto bg-red-600 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded">
-            Create Channel
-          </button>
-        )}
+          {!user?.channel_id ? (
+            <button
+              onClick={() => navigate("/create-channel")}
+              className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
+            >
+              Create Channel
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate("/create-video")}
+              className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
+            >
+              Create Video
+            </button>
+          )}
+
+
         <button
           onClick={handleLogout}
           className="ml-2 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold px-4 py-2 rounded flex items-center gap-2"
@@ -147,36 +165,67 @@ const UserHomePage = () => {
         </button>
       </div>
 
-      {/* User Navigation Tabs */}
+      {/* Tabs */}
       <div className="flex gap-3 overflow-x-auto py-3 border-b border-neutral-800 sticky top-14 bg-background z-10 px-4">
-          {[
-            { icon: <Play className="h-4 w-4" />, label: "Videos" },
-            { icon: <ThumbsUp className="h-4 w-4" />, label: "Likes" },
-            { icon: <Clock className="h-4 w-4" />, label: "History" },
-            { icon: <Download className="h-4 w-4" />, label: "Downloads" },
-          ].map((tab, i) => (
-            <button
-              key={i}
-              onClick={() => setSelectedTab(tab.label)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 whitespace-nowrap text-sm
-                ${selectedTab === tab.label ? "bg-red-600 text-white" : "bg-neutral-800 hover:bg-neutral-700 text-gray-200"}
-              `}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {[
+          { icon: <Play className="h-4 w-4" />, label: "Videos" },
+          { icon: <ThumbsUp className="h-4 w-4" />, label: "Likes" },
+          { icon: <Clock className="h-4 w-4" />, label: "History" },
+          { icon: <Download className="h-4 w-4" />, label: "Downloads" },
+        ].map((tab, i) => (
+          <button
+            key={i}
+            onClick={() => setSelectedTab(tab.label)}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 whitespace-nowrap text-sm
+              ${
+                selectedTab === tab.label
+                  ? "bg-red-600 text-white"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-gray-200"
+              }
+            `}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-
-
-      {/* User Videos (if any) */}
+      {/* Main Content */}
       <div className="px-4 mt-6">
-      {selectedTab === "Videos" && (
-        user?.channel_id ? (
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {videos.length > 0 ? (
-              videos.map((video) => (
+        {/* Videos */}
+        {selectedTab === "Videos" &&
+          (user?.channel_id ? (
+            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {videos.length > 0 ? (
+                videos.map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    id={video.id}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    channel={video.channel}
+                    views={formatViews(video.views)}
+                    timestamp={formatTimeAgo(video.created_at)}
+                    duration={video.duration || "00:00"}
+                  />
+                ))
+              ) : (
+                <p className="text-gray-400 text-center col-span-full">
+                  You haven't uploaded any videos yet.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-center">
+              You don’t have a channel yet. Click “Create Channel” to start uploading videos.
+            </p>
+          ))}
+
+        {/* Likes */}
+        {selectedTab === "Likes" &&
+          (likedVideos.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {likedVideos.map((video) => (
                 <VideoCard
                   key={video.id}
                   id={video.id}
@@ -187,43 +236,15 @@ const UserHomePage = () => {
                   timestamp={formatTimeAgo(video.created_at)}
                   duration={video.duration || "00:00"}
                 />
-              ))
-            ) : (
-              <p className="text-gray-400 text-center col-span-full">
-                You haven't uploaded any videos yet.
-              </p>
-            )}
-          </div>
-        ) : (
-      <p className="text-gray-400 text-center">
-        You don’t have a channel yet. Click “Create Channel” to start uploading videos.
-      </p>
-    )
-  )}
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400">No liked videos yet.</p>
+          ))}
 
-  {selectedTab === "Likes" && (
-  likedVideos.length > 0 ? (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {likedVideos.map((video) => (
-        <VideoCard
-          key={video.id}
-          id={video.id}
-          thumbnail={video.thumbnail}
-          title={video.title}
-          channel={video.channel}
-          views={formatViews(video.views)}
-          timestamp={formatTimeAgo(video.created_at)}
-          duration={video.duration || "00:00"}
-        />
-      ))}
-    </div>
-  ) : (
-    <p className="text-gray-400">No liked videos yet.</p>
-  )
-)}
-
-  {selectedTab === "History" && (
-    history.length > 0 ? (
+        {/* History */}
+        {selectedTab === "History" &&
+          (history.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {history.map((video) => (
                 <Link
@@ -252,11 +273,12 @@ const UserHomePage = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No watch history yet.</p>)
-          )}
+            <p className="text-gray-500">No watch history yet.</p>
+          ))}
 
-  {selectedTab === "Downloads" && (
-    videosD.length > 0 ? (
+        {/* Downloads */}
+        {selectedTab === "Downloads" &&
+          (videosD.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {videosD.map((video) => (
                 <Link
@@ -266,16 +288,15 @@ const UserHomePage = () => {
                 >
                   <img
                     src={
-                        video.thumbnail
+                      video.thumbnail
                         ? video.thumbnail.startsWith("/assets")
-                            ? video.thumbnail
-                            : `http://localhost:5000/uploads/${video.thumbnail}`
+                          ? video.thumbnail
+                          : `http://localhost:5000/uploads/${video.thumbnail}`
                         : "/assets/placeholder.jpg"
                     }
                     alt={video.title}
                     className="w-full h-40 object-cover"
-                    />
-    
+                  />
                   <div className="p-3">
                     <p className="font-semibold text-sm text-white line-clamp-2">
                       {video.title}
@@ -286,10 +307,10 @@ const UserHomePage = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No downloads yet.</p>)
-          )}
-</div>
-</div>
+            <p className="text-gray-500">No downloads yet.</p>
+          ))}
+      </div>
+    </div>
   );
 };
 

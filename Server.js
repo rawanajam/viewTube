@@ -7,6 +7,20 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+
+const storage2 = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // folder must exist
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage: storage2 });
+
 
 dotenv.config();
 
@@ -104,7 +118,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,created_at: user.created_at});
+    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,created_at: user.created_at, channel_id:user.channel_id});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login error" });
@@ -776,6 +790,25 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
   } catch (error) {
     console.error("Error fetching channel videos:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/api/create-channel", upload.single("avatar"), async (req, res) => {
+  try {
+    const { name, user_id } = req.body;
+    const avatar = req.file ? req.file.filename : null;
+
+    const result = await pool.query(
+      `INSERT INTO channels (name, user_id, avatar)
+       VALUES ($1, $2, $3)
+       RETURNING channel_id`,
+      [name, user_id, avatar]
+    );
+
+    res.json({ channel_id: result.rows[0].channel_id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error creating channel" });
   }
 });
 

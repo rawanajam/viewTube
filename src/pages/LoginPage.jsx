@@ -60,7 +60,8 @@ const LoginPage = () => {
             id: res.data.user_id,
             username: res.data.username,   // make sure backend returns username
             avatar: res.data.avatar || null, // optional, if you have avatar URL
-            joined: res.data.created_at
+            joined: res.data.created_at,
+            channel_id: res.data.channel_id || null
           })
         );
       }

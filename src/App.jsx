@@ -20,6 +20,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ExplorePage from "./pages/ExplorePage";
 import HistoryPage from "./pages/HistoryPage";
 import UserHomePage from "./UserHomePage";
+import CreateChannelPage from "./CreateChannelPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
                   <Route path="/explore" element={<ExplorePage />} />
                   <Route path="/history" element={<HistoryPage />} />
                   <Route path="/user-home" element={<UserHomePage />} />
+                  <Route path="/create-channel" element={<CreateChannelPage />} />
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
