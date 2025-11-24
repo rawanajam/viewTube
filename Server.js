@@ -17,8 +17,21 @@ const storage2 = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
+// Video storage
+const videoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/videos"); // make sure this folder exists
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const uploadVideo = multer({ storage: videoStorage });
+
 
 const upload = multer({ storage: storage2 });
+
 
 
 dotenv.config();
@@ -826,6 +839,34 @@ app.post("/api/create-channel", upload.single("avatar"), async (req, res) => {
   } catch (err) {
     console.error("❌ Create channel error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/api/create-video", uploadVideo.fields([
+  { name: "video", maxCount: 1 },
+  { name: "thumbnail", maxCount: 1 },
+]), async (req, res) => {
+  try {
+    const { title, description, category, duration, channel_id } = req.body;
+
+    if (!title || !channel_id || !req.files["video"]) {
+      return res.status(400).json({ message: "Title, video, and channel are required" });
+    }
+
+    const videoPath = req.files["video"][0].filename;
+    const thumbnailPath = req.files["thumbnail"] ? req.files["thumbnail"][0].filename : null;
+
+    const newVideo = await pool.query(
+      `INSERT INTO videos 
+      (title, description, category, duration, channel_id, url, thumbnail)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [title, description, category, duration, channel_id, videoPath, thumbnailPath]
+    );
+
+    res.json(newVideo.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error creating video" });
   }
 });
 

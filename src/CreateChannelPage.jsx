@@ -7,6 +7,7 @@ const CreateChannelPage = () => {
   const user = JSON.parse(localStorage.getItem("user"));
 
   const [channelName, setChannelName] = useState("");
+  const [channelDescrip, setChannelDescrip] = useState("");
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,6 +17,7 @@ const CreateChannelPage = () => {
 
     const formData = new FormData();
     formData.append("name", channelName);
+    formData.append("description", channelDescrip);
     formData.append("user_id", user.id);
     if (avatar) formData.append("avatar", avatar);
 
@@ -58,7 +60,17 @@ const CreateChannelPage = () => {
           value={channelName}
           onChange={(e) => setChannelName(e.target.value)}
           className="w-full p-3 rounded bg-neutral-700 border border-neutral-600 mb-4"
-          placeholder="Enter channel name"
+          placeholder="Enter Channel Name"
+        />
+
+        {/* Channel description */}
+        <label className="block mb-2 font-medium">Channel Description</label>
+        <input
+          type="text"
+          value={channelDescrip}
+          onChange={(e) => setChannelDescrip(e.target.value)}
+          className="w-full p-3 rounded bg-neutral-700 border border-neutral-600 mb-4"
+          placeholder="Enter Channel Description"
         />
 
         {/* Avatar Upload */}
