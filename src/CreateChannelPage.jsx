@@ -15,7 +15,7 @@ const CreateChannelPage = () => {
     if (!channelName) return alert("Channel name is required");
 
     const formData = new FormData();
-    formData.append("channel_name", channelName);
+    formData.append("name", channelName);
     formData.append("user_id", user.id);
     if (avatar) formData.append("avatar", avatar);
 

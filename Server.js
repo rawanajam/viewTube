@@ -8,7 +8,6 @@ import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import multer from "multer";
-import path from "path";
 
 const storage2 = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -793,24 +792,43 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
   }
 });
 
+// ================= CREATE CHANNEL ==================
 app.post("/api/create-channel", upload.single("avatar"), async (req, res) => {
   try {
-    const { name, user_id } = req.body;
-    const avatar = req.file ? req.file.filename : null;
+    const { user_id, name, description } = req.body;
+    const avatar = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const result = await pool.query(
-      `INSERT INTO channels (name, user_id, avatar)
-       VALUES ($1, $2, $3)
-       RETURNING channel_id`,
-      [name, user_id, avatar]
+    if (!user_id || !name) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // 1️⃣ Create channel
+    const channelResult = await pool.query(
+      `INSERT INTO channels (user_id, name, description, avatar)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [user_id, name, description || "", avatar]
     );
 
-    res.json({ channel_id: result.rows[0].channel_id });
+    const channelId = channelResult.rows[0].id;
+
+    // 2️⃣ Update user → attach channel ID
+    await pool.query(
+      `UPDATE users SET channel_id = $1 WHERE id = $2`,
+      [channelId, user_id]
+    );
+
+    res.json({
+      message: "Channel created successfully",
+      channel_id: channelId,
+      avatar,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error creating channel" });
+    console.error("❌ Create channel error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 const PORT = process.env.PORT || 5000;
