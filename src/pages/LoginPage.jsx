@@ -7,8 +7,8 @@ import { Video } from "lucide-react";
 import { motion } from "framer-motion";
 
 const LoginPage = () => {
-  const [mode, setMode] = useState("user"); // "user" or "admin"
-  const [action, setAction] = useState("login"); // "login" or "signup"
+  const [mode, setMode] = useState("user");
+  const [action, setAction] = useState("login");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,7 +16,6 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Hidden keyboard shortcut for admin mode
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === "A") {
@@ -28,7 +27,6 @@ const LoginPage = () => {
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  // Handle login or signup
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -58,13 +56,14 @@ const LoginPage = () => {
           "user",
           JSON.stringify({
             id: res.data.user_id,
-            username: res.data.username,   // make sure backend returns username
-            avatar: res.data.avatar || null, // optional, if you have avatar URL
+            username: res.data.username,
+            avatar: res.data.avatar || null,
             joined: res.data.created_at,
-            channel_id: res.data.channel_id || null
+            channel_id: res.data.channel_id || null,
           })
         );
       }
+
       navigate(res.data.role === "admin" ? "/admin" : "/user-home");
     } catch {
       setError(
@@ -80,44 +79,32 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white relative overflow-hidden">
-      {/* Background glowing circles */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-[-20%] left-[-10%] w-72 h-72 bg-red-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-72 h-72 bg-red-600/30 rounded-full blur-3xl"></div>
-      </div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-black text-white">
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className={`relative w-full max-w-md border rounded-2xl shadow-2xl p-8 backdrop-blur-md ${
-          mode === "admin"
-            ? "bg-gray-900/80 border-gray-700"
-            : "bg-gray-900/60 border-gray-800"
-        }`}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md p-6"
       >
         <div className="flex flex-col items-center mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Video
-              className={`h-8 w-8 ${
-                mode === "admin" ? "text-gray-400" : "text-red-500"
-              }`}
-            />
-            <span className="text-2xl font-bold">
+          <div className="flex items-center gap-2">
+            <Video className="h-7 w-7 text-red-500" />
+            <h2 className="text-2xl font-bold">
               {mode === "admin"
-                ? "Admin Access"
+                ? "Admin Login"
                 : action === "signup"
                 ? "Create Account"
-                : "ViewTube Login"}
-            </span>
+                : "Login"}
+            </h2>
           </div>
-          <p className="text-gray-400 text-sm">
+
+          <p className="text-gray-400 text-sm mt-1">
             {mode === "admin"
-              ? "Restricted area — authorized personnel only"
+              ? "Admin panel access only"
               : action === "signup"
-              ? "Join ViewTube today"
-              : "Sign in to continue watching"}
+              ? "Create your ViewTube account"
+              : "Sign in to continue"}
           </p>
         </div>
 
@@ -126,7 +113,7 @@ const LoginPage = () => {
             <Input
               type="text"
               placeholder="Username"
-              className="bg-gray-800 text-white border-gray-700 focus:ring-2 focus:ring-red-500"
+              className="bg-neutral-900 text-white border-neutral-700"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -136,44 +123,39 @@ const LoginPage = () => {
           <Input
             type="email"
             placeholder="Email"
-            className="bg-gray-800 text-white border-gray-700 focus:ring-2 focus:ring-red-500"
+            className="bg-neutral-900 text-white border-neutral-700"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+
           <Input
             type="password"
             placeholder="Password"
-            className="bg-gray-800 text-white border-gray-700 focus:ring-2 focus:ring-red-500"
+            className="bg-neutral-900 text-white border-neutral-700"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
           <Button
             type="submit"
             disabled={loading}
-            className={`w-full font-semibold transition-all ${
-              mode === "admin"
-                ? "bg-gray-700 hover:bg-gray-600"
-                : "bg-red-600 hover:bg-red-700"
-            }`}
+            className="w-full bg-red-600 hover:bg-red-700 font-semibold"
           >
             {loading
-              ? mode === "admin"
-                ? "Verifying Admin..."
-                : action === "signup"
-                ? "Creating Account..."
-                : "Signing in..."
+              ? "Processing..."
               : mode === "admin"
-              ? "Login as Admin"
+              ? "Admin Login"
               : action === "signup"
               ? "Sign Up"
               : "Login"}
           </Button>
         </form>
 
+        {/* Switch login / signup */}
         {mode === "user" && (
-          <p className="text-sm text-gray-400 text-center mt-3">
+          <p className="text-center text-gray-400 text-sm mt-4">
             {action === "login" ? (
               <>
                 Don’t have an account?{" "}
@@ -199,7 +181,7 @@ const LoginPage = () => {
         )}
 
         {error && (
-          <p className="text-red-400 text-sm text-center mt-3">{error}</p>
+          <p className="text-red-400 text-center text-sm mt-3">{error}</p>
         )}
       </motion.div>
     </div>
