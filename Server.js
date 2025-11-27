@@ -11,7 +11,7 @@ import multer from "multer";
 
 const storage2 = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // folder must exist
+    cb(null, "public/assets/"); // folder must exist
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -794,7 +794,20 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT * FROM videos WHERE channel_id = $1",
+      `
+      SELECT 
+        v.id,
+        v.title,
+        v.thumbnail,
+        v.duration,
+        v.views,
+        v.created_at,
+        c.name AS channel
+      FROM videos v
+      LEFT JOIN channels c ON v.channel_id = c.id
+      WHERE v.channel_id = $1
+      ORDER BY v.created_at DESC
+      `,
       [channelId]
     );
 
@@ -853,8 +866,12 @@ app.post("/api/create-video", uploadVideo.fields([
       return res.status(400).json({ message: "Title, video, and channel are required" });
     }
 
-    const videoPath = req.files["video"][0].filename;
-    const thumbnailPath = req.files["thumbnail"] ? req.files["thumbnail"][0].filename : null;
+    const videoPath = "uploads/videos/" + req.files["video"][0].filename;
+
+const thumbnailPath = req.files["thumbnail"]
+  ? "uploads/videos/" + req.files["thumbnail"][0].filename
+  : null;
+
 
     const newVideo = await pool.query(
       `INSERT INTO videos 

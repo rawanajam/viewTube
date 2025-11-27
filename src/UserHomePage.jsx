@@ -193,33 +193,38 @@ const UserHomePage = () => {
       {/* Main Content */}
       <div className="px-4 mt-6">
         {/* Videos */}
-        {selectedTab === "Videos" &&
-          (user?.channel_id ? (
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {videos.length > 0 ? (
-                videos.map((video) => (
-                  <VideoCard
-                    key={video.id}
-                    id={video.id}
-                    thumbnail={video.thumbnail}
-                    title={video.title}
-                    channel={video.channel}
-                    views={formatViews(video.views)}
-                    timestamp={formatTimeAgo(video.created_at)}
-                    duration={video.duration || "00:00"}
-                  />
-                ))
-              ) : (
-                <p className="text-gray-400 text-center col-span-full">
-                  You haven't uploaded any videos yet.
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-gray-400 text-center">
-              You don’t have a channel yet. Click “Create Channel” to start uploading videos.
-            </p>
-          ))}
+{selectedTab === "Videos" &&
+  (user?.channel_id ? (
+    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      {videos.length > 0 ? (
+        videos.map((video) => (
+          <Link
+            key={video.id}
+            to={`/channel/video/${video.id}`} // ✅ Link to new ChannelVideoPage
+          >
+            <VideoCard
+              id={video.id}
+              thumbnail={video.thumbnail}
+              title={video.title}
+              channel={video.channel}
+              views={formatViews(video.views)}
+              timestamp={formatTimeAgo(video.created_at)}
+              duration={video.duration || "00:00"}
+            />
+          </Link>
+        ))
+      ) : (
+        <p className="text-gray-400 text-center col-span-full">
+          You haven't uploaded any videos yet.
+        </p>
+      )}
+    </div>
+  ) : (
+    <p className="text-gray-400 text-center">
+      You don’t have a channel yet. Click “Create Channel” to start uploading videos.
+    </p>
+  ))}
+
 
         {/* Likes */}
         {selectedTab === "Likes" &&

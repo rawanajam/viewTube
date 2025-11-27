@@ -22,6 +22,7 @@ import HistoryPage from "./pages/HistoryPage";
 import UserHomePage from "./UserHomePage";
 import CreateChannelPage from "./CreateChannelPage";
 import CreateVideoPage from "./CreateVideoPage";
+import ChannelVideoPage from "./pages/ChannelVideoPage";
 const queryClient = new QueryClient();
 
 function App() {
@@ -52,8 +53,10 @@ function App() {
                   <Route path="/user-home" element={<UserHomePage />} />
                   <Route path="/create-channel" element={<CreateChannelPage />} />
                   <Route path="/create-video" element={<CreateVideoPage />} />
+                  <Route path="/channel/video/:id" element={<ChannelVideoPage />} />
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
+
                 </Routes>
               </div>
             </div>
