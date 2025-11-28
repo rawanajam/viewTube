@@ -887,6 +887,35 @@ const thumbnailPath = req.files["thumbnail"]
   }
 });
 
+// Fetch video by ID inside channel page
+app.get("/api/channel/video/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT v.*, c.name AS channel 
+       FROM videos v 
+       JOIN channels c ON v.channel_id = c.id
+       WHERE v.id = $1`,
+      [id]
+    );
+
+    if (result.rows.length === 0)
+      return res.status(404).json({ error: "Video not found" });
+
+    const video = result.rows[0];
+
+    // ⚡ Fix: Add videoUrl property so frontend can use it
+    video.videoUrl = video.url ? `/${video.url}` : ""; // prepend slash for express static
+
+    res.json(video);
+  } catch (err) {
+    console.error("Error fetching channel video:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
 
 const PORT = process.env.PORT || 5000;

@@ -1,16 +1,17 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 
-export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, duration }) => {
+export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, duration , customLink,}) => {
   const safeTitle = title || "Untitled Video";
   const safeChannel = channel || "Unknown Channel";
   const safeThumbnail = thumbnail || "/placeholder.jpg";
   const safeViews = views ?? 0;
   const safeTimestamp = timestamp || "Just now";
   const safeDuration = duration || "";
+  const linkTo = customLink || `/video/${id}`;
 
   return (
-    <Link to={`/video/${id}`} className="group cursor-pointer block">
+    <Link to={linkTo} className="group cursor-pointer block">
       <div className="relative mb-3 overflow-hidden rounded-xl">
         <img
           src={safeThumbnail}
