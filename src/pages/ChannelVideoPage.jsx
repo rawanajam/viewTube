@@ -21,6 +21,12 @@ const ChannelVideoPage = () => {
   const [newComment, setNewComment] = useState("");
   const [isOwner, setIsOwner] = useState(false);
 
+    // ✅ Get user from localStorage
+  const user = JSON.parse(localStorage.getItem("user")) || null;
+
+  // ✅ Now get channelId safely
+  const channelId = user?.channel_id || null;
+
   const userId = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -79,17 +85,21 @@ const ChannelVideoPage = () => {
 
   const handleEdit = () => navigate(`/edit-video/${id}`);
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this video?")) return;
-    try {
-      await axios.delete(`http://localhost:5000/api/videos/${id}`, { data: { user_id: userId } });
-      alert("Video deleted successfully!");
-      navigate("/user-home");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete video.");
-    }
-  };
+const handleDelete = async (video) => {
+  if (!window.confirm("Are you sure you want to delete this video?")) return;
+
+  try {
+    await axios.delete(`http://localhost:5000/api/videos/delete/${video.id}?channel_id=${channelId}`);
+    alert("Video deleted!");
+    setVideos(videos.filter(v => v.id !== video.id));
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete video.");
+  }
+};
+
+
+
 
   const handleComment = async () => {
     if (!userId) return alert("Please login to comment.");
