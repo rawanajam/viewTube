@@ -919,14 +919,14 @@ app.get("/api/channel/video/:id", async (req, res) => {
 // DELETE /api/videos/delete/:id?channel_id=123
 app.delete("/api/videos/delete/:id", async (req, res) => {
   const videoId = req.params.id;
-  const { channel_id } = req.query; // get channel_id from query
+  const { channel_id } = req.query;
 
   if (!channel_id) {
     return res.status(400).json({ message: "Channel ID required" });
   }
 
   try {
-    // Check if video belongs to this channel
+    // Check if this video belongs to this channel
     const check = await pool.query(
       "SELECT * FROM videos WHERE id = $1 AND channel_id = $2",
       [videoId, channel_id]
@@ -936,7 +936,10 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
       return res.status(403).json({ message: "Unauthorized or video not found" });
     }
 
-    // Delete video
+    // DELETE history records first
+    await pool.query("DELETE FROM history WHERE video_id = $1", [videoId]);
+
+    // Now delete the video safely
     await pool.query("DELETE FROM videos WHERE id = $1 AND channel_id = $2", [
       videoId,
       channel_id,
@@ -944,7 +947,7 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
 
     res.json({ message: "Video deleted successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("DELETE ERROR:", err);
     res.status(500).json({ message: "Failed to delete video" });
   }
 });

@@ -85,18 +85,20 @@ const ChannelVideoPage = () => {
 
   const handleEdit = () => navigate(`/edit-video/${id}`);
 
-const handleDelete = async (video) => {
+const handleDelete = async () => {
   if (!window.confirm("Are you sure you want to delete this video?")) return;
 
   try {
-    await axios.delete(`http://localhost:5000/api/videos/delete/${video.id}?channel_id=${channelId}`);
+    await axios.delete(`http://localhost:5000/api/videos/delete/${id}?channel_id=${channelId}`);
+
     alert("Video deleted!");
-    setVideos(videos.filter(v => v.id !== video.id));
+    navigate(`/user-home`); // redirect to channel page
   } catch (err) {
     console.error(err);
     alert("Failed to delete video.");
   }
 };
+
 
 
 
@@ -144,6 +146,7 @@ const handleDelete = async (video) => {
             <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-500">
               <Trash2 size={16} /> Delete Video
             </button>
+
           </div>
 
         {/* Comments */}
