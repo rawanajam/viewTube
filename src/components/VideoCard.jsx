@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 
-export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, duration , customLink,}) => {
+export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, duration , customLink,channelAvatar}) => {
   const safeTitle = title || "Untitled Video";
   const safeChannel = channel || "Unknown Channel";
   const safeThumbnail = thumbnail || "/placeholder.jpg";
@@ -25,10 +25,18 @@ export const VideoCard = ({ id, thumbnail, title, channel, views, timestamp, dur
         )}
       </div>
       <div className="flex gap-3">
-        <Avatar className="h-9 w-9 flex-shrink-0">
-          <AvatarFallback className="bg-secondary text-xs">
-            {safeChannel.charAt(0)}
-          </AvatarFallback>
+        <Avatar className="h-9 w-9 flex-shrink-0 overflow-hidden">
+          {channelAvatar ? (
+            <img
+              src={channelAvatar}
+              alt={safeChannel}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <AvatarFallback className="bg-secondary text-xs">
+              {safeChannel.charAt(0)}
+            </AvatarFallback>
+          )}
         </Avatar>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-foreground">

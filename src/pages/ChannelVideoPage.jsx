@@ -99,10 +99,6 @@ const handleDelete = async () => {
   }
 };
 
-
-
-
-
   const handleComment = async () => {
     if (!userId) return alert("Please login to comment.");
     if (!newComment.trim()) return;

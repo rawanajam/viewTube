@@ -118,7 +118,7 @@ const UserHomePage = () => {
           <img
             src={user.avatar}
             alt="User Avatar"
-            className="w-20 h-20 rounded-full object-cover border-2 border-emerald-500"
+            className="w-20 h-20 rounded-full object-cover border-2 border-red-500"
           />
         ) : (
           <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold border-2 border-red-600">
@@ -207,6 +207,7 @@ const UserHomePage = () => {
               timestamp={formatTimeAgo(video.created_at)}
               duration={video.duration || "00:00"}
               customLink={`/channel/video/${video.id}`}
+              channelAvatar={video.avatar}
             />
         ))
       ) : (

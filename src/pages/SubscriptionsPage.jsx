@@ -31,15 +31,20 @@ const SubscriptionsPage = () => {
                 className="flex items-center justify-between p-4 bg-gray-900 rounded-lg hover:bg-gray-800 transition cursor-pointer no-underline"
               >
                 <div className="flex items-center gap-4">
+                  {channel.avatar ? (
                   <img
-                    src={
-                      channel.avatar
-                        ? `http://localhost:5000/${channel.avatar}`
-                        : "/assets/channel-placeholder.jpg"
-                    }
+                    src={`http://localhost:5000/${channel.avatar}`}
                     alt={channel.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full object-cover bg-gray-700"
                   />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+                    <span className="text-white text-lg font-bold">
+                      {channel.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+
                   <div>
                     <p className="text-white font-medium">{channel.name}</p>
                     {channel.description && (

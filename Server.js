@@ -115,7 +115,17 @@ app.post("/api/login", async (req, res) => {
     return res.status(400).json({ message: "Missing fields" });
 
   try {
-    const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
+    const result = await pool.query(
+          `SELECT 
+              users.*, 
+              channels.id AS channel_id, 
+              channels.avatar AS channel_avatar
+          FROM users
+          LEFT JOIN channels ON users.id = channels.user_id
+          WHERE users.email = $1`,
+          [email]
+        );
+
     if (result.rows.length === 0)
       return res.status(400).json({ message: "User not found" });
 
@@ -130,7 +140,7 @@ app.post("/api/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.avatar || null ,created_at: user.created_at, channel_id:user.channel_id});
+    res.json({ message: "Login successful", token, role: user.role ,user_id: user.id, username: user.username,avatar: user.channel_avatar || null ,created_at: user.created_at, channel_id:user.channel_id});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Login error" });
@@ -951,12 +961,6 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
     res.status(500).json({ message: "Failed to delete video" });
   }
 });
-
-
-
-
-
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
