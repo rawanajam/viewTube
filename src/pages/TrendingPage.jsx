@@ -33,6 +33,7 @@ const TrendingPage = () => {
               channel={video.channel}
               views={formatViews(video.views)}
               timestamp={formatTimeAgo(video.created_at)}
+              channelAvatar={video.channel_avatar}
             />
           ))}
         </div>

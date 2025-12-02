@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const categories = ["Music", "Gaming", "Programming", "News", "Sports"];
+const categories = ["music", "gaming", "programming", "news", "sports"];
 
 const CreateVideoPage = () => {
   const navigate = useNavigate();

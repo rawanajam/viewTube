@@ -38,6 +38,8 @@ const LikedVideosPage = () => {
                           views={formatViews(video.views)}
                           timestamp={formatTimeAgo(video.created_at)}
                           duration={video.duration || "00:00"}
+                          channelAvatar={video.channel_avatar}
+
                         />
           ))}
         </div>

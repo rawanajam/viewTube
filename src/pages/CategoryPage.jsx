@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { VideoCard } from "@/components/VideoCard";
-
+import { formatTimeAgo } from "../utils/formatTimeAgo";
+import { formatViews } from "../utils/formatViews";
 const CategoryPage = () => {
   const { category } = useParams(); // 👈 get the category from the URL
   const [videos, setVideos] = useState([]);
@@ -23,12 +24,14 @@ const CategoryPage = () => {
           {videos.map((video) => (
             <VideoCard
               key={video.id}
-              thumbnail={video.thumbnail}
+              id={video.id}
               title={video.title}
+              thumbnail={video.thumbnail}
               channel={video.channel}
-              views={`${(video.views / 1000000).toFixed(1)}M`}
-              timestamp="Just now"
-              duration="10:00"
+              views={formatViews(video.views)}
+              timestamp={formatTimeAgo(video.created_at)}
+              duration={video.duration || "00:00"}
+              channelAvatar={video.channel_avatar}
             />
           ))}
         </div>

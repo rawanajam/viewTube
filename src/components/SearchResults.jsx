@@ -32,11 +32,14 @@ const SearchResults = () => {
             <VideoCard
               key={video.id}
               id={video.id}
-              title={video.title}
               thumbnail={video.thumbnail}
+              title={video.title}
               channel={video.channel}
-              views={video.views}
-              timestamp={video.timestamp}
+              views={formatViews(video.views)}
+              timestamp={formatTimeAgo(video.created_at)}
+              duration={video.duration || "00:00"}
+              channelAvatar={video.channel_avatar}
+              
             />
           ))}
         </div>

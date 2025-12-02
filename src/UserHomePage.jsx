@@ -207,7 +207,7 @@ const UserHomePage = () => {
               timestamp={formatTimeAgo(video.created_at)}
               duration={video.duration || "00:00"}
               customLink={`/channel/video/${video.id}`}
-              channelAvatar={video.avatar}
+              channelAvatar={video.channel_avatar}
             />
         ))
       ) : (
@@ -237,6 +237,7 @@ const UserHomePage = () => {
                   views={formatViews(video.views)}
                   timestamp={formatTimeAgo(video.created_at)}
                   duration={video.duration || "00:00"}
+                  channelAvatar={video.channel_avatar}
                 />
               ))}
             </div>

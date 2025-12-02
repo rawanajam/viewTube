@@ -9,7 +9,7 @@ import { Header } from "@/components/Header";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SearchResults from "./components/SearchResults";
-import CategoryPage from "./CategoryPage";
+import CategoryPage from "./pages/CategoryPage";
 import VideoPage from "./pages/VideoPage";
 import LoginPage from "./pages/LoginPage";
 import LikedVideosPage from "./pages/LikedVideosPage";

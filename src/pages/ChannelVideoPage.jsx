@@ -135,11 +135,8 @@ const handleDelete = async () => {
         </div>
 
         {/* Edit/Delete Buttons */}
-          <div className="flex gap-2 mb-4">
-            <button onClick={handleEdit} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-500">
-              <Edit3 size={16} /> Edit Video
-            </button>
-            <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center gap-2 hover:bg-red-500">
+          <div className="flex mb-4">
+            <button onClick={handleDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg flex items-center hover:bg-red-500">
               <Trash2 size={16} /> Delete Video
             </button>
 

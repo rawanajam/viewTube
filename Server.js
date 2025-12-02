@@ -194,18 +194,27 @@ app.get("/api/test", async (req, res) => {
 app.get("/api/videos", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
-             c.name AS channel
+      SELECT 
+        v.id, 
+        v.title, 
+        v.thumbnail, 
+        v.views, 
+        v.created_at, 
+        v.duration,
+        c.name AS channel,
+        c.avatar AS channel_avatar
       FROM videos v
       LEFT JOIN channels c ON v.channel_id = c.id
       ORDER BY v.created_at DESC
     `);
+
     res.json(result.rows);
   } catch (err) {
     console.error("Error fetching videos:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // ====== PUT SEARCH ROUTE FIRST ======
 app.get("/api/videos/search", async (req, res) => {
@@ -215,7 +224,8 @@ app.get("/api/videos/search", async (req, res) => {
   try {
     const results = await pool.query(
       `SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
-              c.name AS channel
+              c.name AS channel,
+        c.avatar AS channel_avatar
        FROM videos v
        LEFT JOIN channels c ON v.channel_id = c.id
        WHERE LOWER(v.title) LIKE LOWER($1)
@@ -241,7 +251,8 @@ app.get("/api/videos/:id", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT v.*, c.name AS channel 
+      `SELECT v.*, c.name AS channel,
+        c.avatar AS channel_avatar 
        FROM videos v 
        JOIN channels c ON v.channel_id = c.id
        WHERE v.id = $1`,
@@ -487,22 +498,31 @@ app.get("/api/comment/reaction/:commentId/:userId", async (req, res) => {
 // ✅ Get videos by category
 app.get("/api/videos/category/:category", async (req, res) => {
   const { category } = req.params;
+
   try {
-    const result = await pool.query(`
-      SELECT v.id, v.title, v.thumbnail, v.views, v.created_at, v.duration,
-             c.name AS channel
-      FROM videos v
-      LEFT JOIN channels c ON v.channel_id = c.id
-      WHERE v.category = $1
-      ORDER BY v.created_at DESC
-    `, [category]);
+    const result = await pool.query(
+      `SELECT 
+          v.id,
+          v.title,
+          v.thumbnail,
+          v.views,
+          v.created_at,
+          v.duration,
+          c.name AS channel,
+          c.avatar AS channel_avatar
+       FROM videos v
+       JOIN channels c ON v.channel_id = c.id
+       WHERE v.category = $1
+       ORDER BY v.created_at DESC`,
+      [category]
+    );
+
     res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching videos by category:", err);
-    res.status(500).json({ error: "Internal server error" });
+  } catch (error) {
+    console.error("Error fetching category videos:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
-
 
 // =================== LIKED VIDEOS ROUTE ===================
 app.get("/api/likes/:userId", async (req, res) => {
@@ -516,7 +536,8 @@ app.get("/api/likes/:userId", async (req, res) => {
           v.duration, 
           v.views, 
           v.created_at,
-          c.name AS channel
+          c.name AS channel,
+        c.avatar AS channel_avatar
        FROM video_likes l
        JOIN videos v ON l.video_id = v.id
        JOIN channels c ON v.channel_id = c.id
@@ -692,7 +713,8 @@ app.get("/api/trending", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT v.id, v.title, v.thumbnail, v.views, v.created_at,
-             c.name AS channel, c.avatar
+             c.name AS channel, c.avatar,
+        c.avatar AS channel_avatar
       FROM videos v
       JOIN channels c ON v.channel_id = c.id
       ORDER BY v.views DESC
@@ -724,7 +746,8 @@ app.get("/api/history/:userId", async (req, res) => {
     const result = await pool.query(
       `
       SELECT h.video_id AS id, v.title, v.thumbnail, v.duration, v.views, v.created_at,
-             c.name AS channel
+             c.name AS channel,
+        c.avatar AS channel_avatar
       FROM history h
       JOIN videos v ON h.video_id = v.id
       LEFT JOIN channels c ON v.channel_id = c.id
@@ -812,7 +835,8 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
         v.duration,
         v.views,
         v.created_at,
-        c.name AS channel
+        c.name AS channel,
+        c.avatar AS channel_avatar
       FROM videos v
       LEFT JOIN channels c ON v.channel_id = c.id
       WHERE v.channel_id = $1
@@ -903,7 +927,8 @@ app.get("/api/channel/video/:id", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT v.*, c.name AS channel 
+      `SELECT v.*, c.name AS channel ,
+        c.avatar AS channel_avatar
        FROM videos v 
        JOIN channels c ON v.channel_id = c.id
        WHERE v.id = $1`,
