@@ -16,6 +16,7 @@ const UserHomePage = () => {
   const [likedVideos, setLikedVideos] = useState([]);
   const [history, setHistory] = useState([]);
   const [videosD, setDVideos] = useState([]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const userId = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -136,28 +137,31 @@ const UserHomePage = () => {
             })}
           </p>
         </div>
+        <button
+          onClick={() => navigate("/edit-profile")}
+          className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
+        >
+          Edit Profile
+        </button>
 
-        {/* HERE IS THE UPDATED PART */}
-        {/* Conditional buttons */}
-          {!user?.channel_id ? (
-            <button
-              onClick={() => navigate("/create-channel")}
-              className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
-            >
-              Create Channel
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate("/create-video")}
-              className="ml-auto bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded"
-            >
-              Create Video
-            </button>
-          )}
-
+        {!user?.channel_id ? (
+          <button
+            onClick={() => navigate("/create-channel")}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded ml-2"
+          >
+            Create Channel
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/create-video")}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded ml-2"
+          >
+            Create Video
+          </button>
+        )}
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="ml-2 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold px-4 py-2 rounded flex items-center gap-2"
         >
           <LogOut className="h-4 w-4" />
@@ -313,6 +317,36 @@ const UserHomePage = () => {
             <p className="text-gray-500">No downloads yet.</p>
           ))}
       </div>
+      {showLogoutConfirm && (
+  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-80 text-center">
+      <h3 className="text-xl font-semibold mb-4 text-white">
+        Are you sure you want to logout?
+      </h3>
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+          }}
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded"
+        >
+          Yes, Logout
+        </button>
+
+        <button
+          onClick={() => setShowLogoutConfirm(false)}
+          className="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

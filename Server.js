@@ -26,6 +26,12 @@ const videoStorage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
+const storage3 = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/avatars"),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const uploadAvatar = multer({ storage: storage3 });
+
 
 const uploadVideo = multer({ storage: videoStorage });
 
@@ -261,6 +267,12 @@ app.get("/api/videos/:id", async (req, res) => {
 
     if (result.rows.length === 0)
       return res.status(404).json({ error: "Video not found" });
+
+    // Increase views count (only once per fetch)
+    await pool.query(
+      "UPDATE videos SET views = views + 1 WHERE id = $1",
+      [id]
+    );
 
     const video = result.rows[0];
     video.videoUrl = video.url ? `/${video.url}` : ""; // <-- safety check
@@ -985,7 +997,34 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
     console.error("DELETE ERROR:", err);
     res.status(500).json({ message: "Failed to delete video" });
   }
+});app.put("/api/users/:id", uploadAvatar.single("avatar"), async (req, res) => {
+  const { id } = req.params;
+  const { username, password } = req.body;
+
+  let avatarPath = null;
+  if (req.file) avatarPath = "/uploads/avatars/" + req.file.filename;
+
+  try {
+    let hashedPassword = null;
+    if (password) hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await pool.query(
+      `UPDATE users 
+       SET username = COALESCE($1, username),
+           password = COALESCE($2, password),
+           avatar = COALESCE($3, avatar)
+       WHERE id = $4
+       RETURNING id, username, email, avatar, joined`,
+      [username, hashedPassword, avatarPath, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(500).json({ error: "Error updating profile" });
+  }
 });
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
