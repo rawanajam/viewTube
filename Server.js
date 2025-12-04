@@ -57,7 +57,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/assets", express.static(path.join(__dirname, "assets")));
+app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
@@ -868,7 +868,7 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
 app.post("/api/create-channel", upload.single("avatar"), async (req, res) => {
   try {
     const { user_id, name, description } = req.body;
-    const avatar = req.file ? `/uploads/${req.file.filename}` : null;
+    const avatar = req.file ? `uploads/avatars/${req.file.filename}` : null;
 
     if (!user_id || !name) {
       return res.status(400).json({ message: "Missing required fields" });
