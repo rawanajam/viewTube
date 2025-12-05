@@ -865,7 +865,7 @@ app.get("/api/videos/channel/:channelId", async (req, res) => {
 });
 
 // ================= CREATE CHANNEL ==================
-app.post("/api/create-channel", upload.single("avatar"), async (req, res) => {
+app.post("/api/create-channel", uploadAvatar.single("avatar"), async (req, res) => {
   try {
     const { user_id, name, description } = req.body;
     const avatar = req.file ? `uploads/avatars/${req.file.filename}` : null;
@@ -997,12 +997,13 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
     console.error("DELETE ERROR:", err);
     res.status(500).json({ message: "Failed to delete video" });
   }
-});app.put("/api/users/:id", uploadAvatar.single("avatar"), async (req, res) => {
+});
+app.put("/api/users/:id", uploadAvatar.single("avatar"), async (req, res) => {
   const { id } = req.params;
   const { username, password } = req.body;
 
   let avatarPath = null;
-  if (req.file) avatarPath = "/uploads/avatars/" + req.file.filename;
+  if (req.file) avatarPath = "uploads/avatars/" + req.file.filename;
 
   try {
     let hashedPassword = null;
@@ -1022,6 +1023,100 @@ app.delete("/api/videos/delete/:id", async (req, res) => {
   } catch (err) {
     console.error("Error updating profile:", err);
     res.status(500).json({ error: "Error updating profile" });
+  }
+});
+
+// ======================= EDIT PROFILE =======================
+// ======================== EDIT PROFILE ========================
+app.put("/api/edit-profile", uploadAvatar.single("avatar"), async (req, res) => {
+  const { user_id, username, channel_name, oldPassword, newPassword } = req.body;
+  const avatarFile = req.file ? req.file.filename : null;
+
+  if (!user_id) {
+    return res.status(400).json({ message: "User ID required" });
+  }
+
+  try {
+    // 1️⃣ Get user
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE id = $1",
+      [user_id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    // 2️⃣ Update username
+    if (username) {
+      await pool.query(
+        "UPDATE users SET username = $1 WHERE id = $2",
+        [username, user_id]
+      );
+    }
+
+    // 3️⃣ Update password
+    if (oldPassword && newPassword) {
+      const valid = await bcrypt.compare(oldPassword, user.password_hash);
+
+      if (!valid) {
+        return res.status(400).json({ message: "Old password is incorrect" });
+      }
+
+      const hashed = await bcrypt.hash(newPassword, 10);
+
+      await pool.query(
+        "UPDATE users SET password_hash = $1 WHERE id = $2",
+        [hashed, user_id]
+      );
+    }
+
+    // 4️⃣ Update channel name
+    if (channel_name) {
+      await pool.query(
+        "UPDATE channels SET channel_name = $1 WHERE user_id = $2",
+        [channel_name, user_id]
+      );
+    }
+
+    // 5️⃣ Update avatar
+    if (avatarFile) {
+      await pool.query(
+        "UPDATE channels SET avatar = $1 WHERE user_id = $2",
+        [avatarFile, user_id]
+      );
+    }
+
+    // 6️⃣ FETCH updated user + channel
+    const updatedUser = await pool.query(
+      "SELECT id, username, email FROM users WHERE id = $1",
+      [user_id]
+    );
+
+    const updatedChannel = await pool.query(
+      "SELECT id, channel_name, avatar FROM channels WHERE user_id = $1",
+      [user_id]
+    );
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        ...updatedUser.rows[0],
+        channel: updatedChannel.rows[0]
+          ? {
+              ...updatedChannel.rows[0],
+              avatar: updatedChannel.rows[0].avatar
+                ? `/uploads/avatars/${updatedChannel.rows[0].avatar}`
+                : null,
+            }
+          : null,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Edit profile error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -95,6 +95,7 @@ const UserHomePage = () => {
   }, [userId]);
 
   const handleLogout = () => {
+    localStorage.clear();
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     setUser(null);
@@ -327,6 +328,7 @@ const UserHomePage = () => {
       <div className="flex gap-3">
         <button
           onClick={() => {
+            localStorage.clear();
             localStorage.removeItem("user");
             localStorage.removeItem("token");
             window.location.href = "/login";

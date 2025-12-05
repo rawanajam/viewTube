@@ -35,7 +35,12 @@ const CreateChannelPage = () => {
       const newChannel = res.data;
 
       // update user in localStorage
-      const updatedUser = { ...user, channel_id: newChannel.channel_id };
+      const updatedUser = {
+        ...user,
+        channel_id: newChannel.channel_id,
+        avatar: newChannel.avatar || user.avatar  // update avatar immediately
+      };
+
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
       alert("Channel created successfully!");
