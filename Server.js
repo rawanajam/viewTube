@@ -221,6 +221,35 @@ app.get("/api/videos", async (req, res) => {
   }
 });
 
+// ✅ Get videos by category
+app.get("/api/videos/category/:category", async (req, res) => {
+  const { category } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+          v.id,
+          v.title,
+          v.thumbnail,
+          v.views,
+          v.created_at,
+          v.duration,
+          c.name AS channel,
+          c.avatar AS channel_avatar
+       FROM videos v
+       JOIN channels c ON v.channel_id = c.id
+       WHERE v.category = $1
+       ORDER BY v.created_at DESC`,
+      [category]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching category videos:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 
 // ====== PUT SEARCH ROUTE FIRST ======
 app.get("/api/videos/search", async (req, res) => {
@@ -507,34 +536,6 @@ app.get("/api/comment/reaction/:commentId/:userId", async (req, res) => {
   }
 });
 
-// ✅ Get videos by category
-app.get("/api/videos/category/:category", async (req, res) => {
-  const { category } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT 
-          v.id,
-          v.title,
-          v.thumbnail,
-          v.views,
-          v.created_at,
-          v.duration,
-          c.name AS channel,
-          c.avatar AS channel_avatar
-       FROM videos v
-       JOIN channels c ON v.channel_id = c.id
-       WHERE v.category = $1
-       ORDER BY v.created_at DESC`,
-      [category]
-    );
-
-    res.json(result.rows);
-  } catch (error) {
-    console.error("Error fetching category videos:", error);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
 // =================== LIKED VIDEOS ROUTE ===================
 app.get("/api/likes/:userId", async (req, res) => {
