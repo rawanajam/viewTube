@@ -396,29 +396,34 @@ app.post("/api/videos/:id/reaction", async (req, res) => {
       );
 
       // ✅ Send notification only for likes
-      if (type === "like") {
-        // 1️⃣ Find the video owner (the uploader)
-        const videoResult = await pool.query(
-          "SELECT user_id FROM videos WHERE id = $1",
-          [id]
-        );
-        const targetUserId = videoResult.rows[0]?.user_id;
+if (type === "like") {
+  // 1️⃣ Find the video owner (the uploader via channel)
+  const videoResult = await pool.query(
+    `SELECT ch.user_id 
+     FROM videos v
+     JOIN channels ch ON v.channel_id = ch.id
+     WHERE v.id = $1`,
+    [id]
+  );
 
-        if (targetUserId && targetUserId !== user_id) {
-          // 2️⃣ Get liker’s username
-          const userResult = await pool.query(
-            "SELECT username FROM users WHERE id = $1",
-            [user_id]
-          );
-          const username = userResult.rows[0]?.username || "Someone";
+  const targetUserId = videoResult.rows[0]?.user_id;
 
-          // 3️⃣ Insert notification
-          await pool.query(
-            "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
-            [targetUserId, `${username} liked your video`]
-          );
-        }
-      }
+  if (targetUserId && targetUserId !== user_id) {
+    // 2️⃣ Get liker’s username
+    const userResult = await pool.query(
+      "SELECT username FROM users WHERE id = $1",
+      [user_id]
+    );
+    const username = userResult.rows[0]?.username || "Someone";
+
+    // 3️⃣ Insert notification
+    await pool.query(
+      "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
+      [targetUserId, `${username} liked your video`]
+    );
+  }
+}
+
     }
 
     res.json({ success: true });

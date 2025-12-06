@@ -20,6 +20,7 @@ export const Header = () => {
   useEffect(() => {
     const loadUser = () => {
       const storedUser = localStorage.getItem("user");
+      const storedUserId = localStorage.getItem("userId");
       setUser(storedUser ? JSON.parse(storedUser) : null);
     };
 
@@ -132,7 +133,7 @@ export const Header = () => {
 
           {/* Icons */}
           <div className="flex items-center gap-2">
-            <NotificationsButton />
+            <NotificationsButton userId={user?.id} />
 
           <Button
   variant="ghost"
