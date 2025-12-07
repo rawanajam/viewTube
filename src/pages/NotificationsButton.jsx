@@ -6,40 +6,90 @@ import { Button } from "@/components/ui/button";
 const NotificationsButton = ({ userId }) => {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 🔹 Fetch notifications list
+  const fetchNotifications = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/notifications/${userId}`
+      );
+      setNotifications(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setNotifications([]);
+    }
+  };
+
+  // 🔹 Fetch unread count
+  const fetchUnreadCount = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/notifications/${userId}/unread-count`
+      );
+      setUnreadCount(res.data.count || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      setUnreadCount(0);
+    }
+  };
 
   useEffect(() => {
     if (!userId) {
       setNotifications([]);
+      setUnreadCount(0);
       return;
     }
 
-    const fetchNotifications = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/api/notifications/${userId}`);
-        // Ensure res.data is always an array
-        setNotifications(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
-        setNotifications([]);
-      }
-    };
-
     fetchNotifications();
+    fetchUnreadCount();
 
-    // Optional: auto-refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadCount();
+    }, 30000);
+
     return () => clearInterval(interval);
   }, [userId]);
+
+  // 🔹 When opening the dropdown
+  const handleToggle = async () => {
+    const newOpen = !open;
+    setOpen(newOpen);
+
+    if (!open && userId) {
+      // Mark all as read when user opens notifications
+      try {
+        await axios.put(
+          `http://localhost:5000/api/notifications/${userId}/mark-read`
+        );
+        setUnreadCount(0);
+      } catch (err) {
+        console.error("Error marking as read:", err);
+      }
+    }
+  };
 
   return (
     <div className="relative">
       <Button
         variant="ghost"
         size="icon"
-        className="hover:bg-youtube-hover"
-        onClick={() => setOpen(!open)}
+        className="hover:bg-youtube-hover relative"
+        onClick={handleToggle}
       >
         <Bell className="h-5 w-5" />
+
+        {/* 🔴 Red badge with number */}
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+            {unreadCount}
+          </span>
+        )}
       </Button>
 
       {open && (
@@ -52,7 +102,7 @@ const NotificationsButton = ({ userId }) => {
             <ul className="max-h-60 overflow-y-auto">
               {notifications.map((n) => (
                 <li
-                  key={n.id || n.message} // fallback in case id is missing
+                  key={n.id || n.message}
                   className="flex items-start px-3 py-2 hover:bg-muted border-b border-border text-sm space-x-2"
                 >
                   {n.avatar && (

@@ -1082,7 +1082,7 @@ app.put("/api/edit-profile", uploadAvatar.single("avatar"), async (req, res) => 
     // 4️⃣ Update channel name
     if (channel_name) {
       await pool.query(
-        "UPDATE channels SET channel_name = $1 WHERE user_id = $2",
+        "UPDATE channels SET name = $1 WHERE user_id = $2",
         [channel_name, user_id]
       );
     }
@@ -1091,7 +1091,7 @@ app.put("/api/edit-profile", uploadAvatar.single("avatar"), async (req, res) => 
     if (avatarFile) {
       await pool.query(
         "UPDATE channels SET avatar = $1 WHERE user_id = $2",
-        [avatarFile, user_id]
+        [`uploads/avatars/${avatarFile}`, user_id]
       );
     }
 
@@ -1102,7 +1102,7 @@ app.put("/api/edit-profile", uploadAvatar.single("avatar"), async (req, res) => 
     );
 
     const updatedChannel = await pool.query(
-      "SELECT id, channel_name, avatar FROM channels WHERE user_id = $1",
+      "SELECT id, name, avatar FROM channels WHERE user_id = $1",
       [user_id]
     );
 
@@ -1123,6 +1123,40 @@ app.put("/api/edit-profile", uploadAvatar.single("avatar"), async (req, res) => 
   } catch (err) {
     console.error("❌ Edit profile error:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ Get unread notifications count
+app.get("/api/notifications/:userId/unread-count", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = FALSE",
+      [userId]
+    );
+
+    res.json({ count: Number(result.rows[0].count) });
+  } catch (err) {
+    console.error("Error getting unread count:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ Mark notifications as read
+app.put("/api/notifications/:userId/mark-read", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    await pool.query(
+      "UPDATE notifications SET is_read = TRUE WHERE user_id = $1",
+      [userId]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error marking notifications as read:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

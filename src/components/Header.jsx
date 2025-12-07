@@ -61,7 +61,7 @@ export const Header = () => {
 
   const handleSuggestionClick = (video) => {
     setInput(video.title);
-    navigate(`/video/${video.id}`);
+    navigate(`/search?q=${encodeURIComponent(video.title)}`);
     setShowDropdown(false);
   };
 

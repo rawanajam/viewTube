@@ -46,20 +46,15 @@ const EditProfile = () => {
   }, [storedUser.channel_id]);
 
   // Password validation
-  const isStrongPassword = (pw) =>
-    pw.length >= 8 &&
-    /[A-Z]/.test(pw) &&
-    /[a-z]/.test(pw) &&
-    /[0-9]/.test(pw) &&
-    /[^A-Za-z0-9]/.test(pw);
+ const isNormalPassword = (pw) => pw.length >= 4;
 
   const handleUpdate = async (e) => {
     e.preventDefault();
 
     if (newPassword) {
-      if (!isStrongPassword(newPassword)) {
+      if (!isNormalPassword(newPassword)) {
         return alert(
-          "Password must be 8+ characters, with uppercase, lowercase, number & symbol."
+          "Password must be at least 4 characters."
         );
       }
       if (newPassword !== confirmPassword) {
@@ -87,7 +82,17 @@ const EditProfile = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      const oldUser = JSON.parse(localStorage.getItem("user")) || {};
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...oldUser,              // keep previous info (like channel)
+            ...res.data.user,        // update the fields that changed
+            avatar: res.data.user.avatar || preview,
+          })
+        );
+
 
       alert("Profile updated!");
       navigate("/user-home");
@@ -218,9 +223,7 @@ const EditProfile = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 <p className="text-sm text-neutral-300 mt-2">
-                  • Must be 8+ characters  
-                  • Uppercase & lowercase  
-                  • Number & symbol  
+                  • Must be 4+ characters  
                 </p>
               </div>
             )}
