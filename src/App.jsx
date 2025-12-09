@@ -24,6 +24,7 @@ import CreateChannelPage from "./CreateChannelPage";
 import CreateVideoPage from "./CreateVideoPage";
 import ChannelVideoPage from "./pages/ChannelVideoPage";
 import EditProfile from "./pages/EditProfile";
+import OwnerDashboard from "./OwnerDashboard";
 const queryClient = new QueryClient();
 
 function App() {
@@ -56,6 +57,7 @@ function App() {
                   <Route path="/create-video" element={<CreateVideoPage />} />
                   <Route path="/channel/video/:id" element={<ChannelVideoPage />} />
                   <Route path="/edit-profile" element={<EditProfile/>} />
+                  <Route path="/owner-dashboard" element={<OwnerDashboard/>} />
                   {/* Add your other routes here */}
                   <Route path="*" element={<NotFound />} />
 

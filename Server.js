@@ -62,6 +62,30 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const SECRET_KEY = process.env.JWT_SECRET || "your_secret_key";
 
+const verifyAdmin = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "No token provided" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+
+
 // =================== AUTH ROUTES ===================
 
 // --- USER SIGNUP ---
@@ -1158,6 +1182,42 @@ app.put("/api/notifications/:userId/mark-read", async (req, res) => {
     console.error("Error marking notifications as read:", err);
     res.status(500).json({ error: "Server error" });
   }
+});
+
+// Get all channels
+app.get("/api/admin/channels", verifyAdmin,async (req, res) => {
+  const result = await pool.query(`
+    SELECT c.*, 
+    (SELECT COUNT(*) FROM videos v WHERE v.channel_id = c.id) AS video_count
+    FROM channels c
+  `);
+  res.json(result.rows);
+});
+
+// Get all videos
+app.get("/api/admin/videos", verifyAdmin,async (req, res) => {
+  const result = await pool.query(`
+    SELECT v.*, c.name AS channel, c.avatar AS channel_avatar
+    FROM videos v
+    JOIN channels c ON v.channel_id = c.id
+    ORDER BY v.created_at DESC
+  `);
+  res.json(result.rows);
+});
+
+// Analytics
+app.get("/api/admin/analytics", verifyAdmin,async (req, res) => {
+  const channels = await pool.query("SELECT COUNT(*) FROM channels");
+  const videos = await pool.query("SELECT COUNT(*) FROM videos");
+  const views = await pool.query("SELECT COALESCE(SUM(views),0) FROM videos");
+  const users = await pool.query("SELECT COUNT(*) FROM users");
+
+  res.json({
+    totalChannels: channels.rows[0].count,
+    totalVideos: videos.rows[0].count,
+    totalViews: views.rows[0].coalesce,
+    totalUsers: users.rows[0].count,
+  });
 });
 
 

@@ -64,7 +64,12 @@ const LoginPage = () => {
         );
       }
 
-      navigate(res.data.role === "admin" ? "/admin" : "/user-home");
+      if (res.data.role === "admin") {
+        navigate("/owner-dashboard");   // your new admin/owner page
+      } else {
+        navigate("/user-home");
+      }
+
     } catch {
       setError(
         mode === "admin"
