@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { VideoCard } from "@/components/VideoCard";
-import { BarChart, Users, Video, Eye } from "lucide-react";
+import {
+  BarChart,
+  Users,
+  Video,
+  Eye,
+  Trash2,
+  Ban,
+} from "lucide-react";
 import { formatViews } from "./utils/formatViews";
 import { formatTimeAgo } from "./utils/formatTimeAgo";
 
@@ -20,38 +27,84 @@ const OwnerDashboard = () => {
     fetchAllData();
   }, []);
 
+  const token = localStorage.getItem("token");
+
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+
   const fetchAllData = async () => {
-  try {
-    const token = localStorage.getItem("token");
+    try {
+      const channelsRes = await axios.get(
+        "http://localhost:5000/api/admin/channels",
+        config
+      );
 
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
+      const videosRes = await axios.get(
+        "http://localhost:5000/api/admin/videos",
+        config
+      );
 
-    const channelsRes = await axios.get(
-      "http://localhost:5000/api/admin/channels",
-      config
-    );
+      const statsRes = await axios.get(
+        "http://localhost:5000/api/admin/analytics",
+        config
+      );
 
-    const videosRes = await axios.get(
-      "http://localhost:5000/api/admin/videos",
-      config
-    );
+      setChannels(channelsRes.data);
+      setVideos(videosRes.data);
+      setAnalytics(statsRes.data);
+    } catch (err) {
+      console.error("Admin fetch error:", err);
+    }
+  };
 
-    const statsRes = await axios.get(
-      "http://localhost:5000/api/admin/analytics",
-      config
-    );
+  // ✅ DELETE VIDEO
+  const deleteVideo = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/admin/delete-video/${id}`,
+        {},
+        config
+      );
 
-    setChannels(channelsRes.data);
-    setVideos(videosRes.data);
-    setAnalytics(statsRes.data);
-  } catch (err) {
-    console.error("Admin fetch error:", err);
-  }
-};
+      // remove from UI
+      setVideos((prev) => prev.filter((v) => v.id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  // ✅ BAN VIDEO
+  const banVideo = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/admin/ban-video/${id}`,
+        {},
+        config
+      );
+      alert("Video banned ✅");
+    } catch (err) {
+      console.error("Ban failed:", err);
+    }
+  };
+
+  // ✅ BAN CHANNEL
+  const banChannel = async (id) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/api/admin/ban-channel/${id}`,
+        {},
+        config
+      );
+
+      // remove from UI
+      setChannels((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error("Ban channel failed:", err);
+    }
+  };
 
   return (
     <div className="w-full min-h-screen bg-background text-foreground pt-14 px-4">
@@ -78,17 +131,18 @@ const OwnerDashboard = () => {
             key={i}
             onClick={() => setSelectedTab(tab.label)}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm
-              ${selectedTab === tab.label
-                ? "bg-red-600 text-white"
-                : "bg-neutral-800 hover:bg-neutral-700 text-gray-200"}
-            `}
+              ${
+                selectedTab === tab.label
+                  ? "bg-red-600 text-white"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-gray-200"
+              }`}
           >
             {tab.icon} {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ANALYTICS TAB */}
+      {/* ANALYTICS */}
       {selectedTab === "Analytics" && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
           <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
@@ -105,7 +159,9 @@ const OwnerDashboard = () => {
             <p className="text-gray-400 text-sm flex items-center gap-1">
               <Eye className="h-4 w-4" /> Total Views
             </p>
-            <h2 className="text-3xl font-bold">{formatViews(analytics.totalViews)}</h2>
+            <h2 className="text-3xl font-bold">
+              {formatViews(analytics.totalViews)}
+            </h2>
           </div>
 
           <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
@@ -122,16 +178,34 @@ const OwnerDashboard = () => {
             channels.map((ch) => (
               <div
                 key={ch.id}
-                className="bg-neutral-900 border border-neutral-700 p-4 rounded-lg"
+                className="bg-neutral-900 border border-neutral-700 p-4 rounded-lg relative group"
               >
+                {/* Admin Buttons */}
+                <div className="absolute top-3 right-3 hidden group-hover:flex gap-2">
+                  <button
+                    onClick={() => banChannel(ch.id)}
+                    className="bg-yellow-600 p-2 rounded-lg hover:bg-yellow-700"
+                  >
+                    <Ban size={16} />
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={ch.avatar || "/assets/avatar.png"}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  {ch.avatar ? (
+                    <img
+                      src={ch.avatar}
+                      className="w-12 h-12 rounded-full object-cover"
+                      alt={ch.name}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-lg uppercase">
+                      {ch.name?.charAt(0) || "U"}
+                    </div>
+                  )}
+
                   <div>
                     <p className="font-semibold">{ch.name}</p>
-                    <p className="text-sm text-gray-400">@{ch.handle}</p>
+                    <p className="text-sm text-gray-400">ID: {ch.id}</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">
@@ -152,18 +226,36 @@ const OwnerDashboard = () => {
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 mt-6">
           {videos.length > 0 ? (
             videos.map((video) => (
-              <VideoCard
-                key={video.id}
-                id={video.id}
-                thumbnail={video.thumbnail}
-                title={video.title}
-                channel={video.channel}
-                views={formatViews(video.views)}
-                timestamp={formatTimeAgo(video.created_at)}
-                duration={video.duration || "00:00"}
-                channelAvatar={video.channel_avatar}
-                customLink={`/channel/video/${video.id}`}
-              />
+              <div key={video.id} className="relative group">
+                {/* Admin Buttons */}
+                <div className="absolute top-3 right-3 hidden group-hover:flex gap-2 z-10">
+                  <button
+                    onClick={() => deleteVideo(video.id)}
+                    className="bg-red-600 p-2 rounded-lg hover:bg-red-700"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+
+                  <button
+                    onClick={() => banVideo(video.id)}
+                    className="bg-yellow-600 p-2 rounded-lg hover:bg-yellow-700"
+                  >
+                    <Ban size={16} />
+                  </button>
+                </div>
+
+                <VideoCard
+                  id={video.id}
+                  thumbnail={video.thumbnail}
+                  title={video.title}
+                  channel={video.channel}
+                  views={formatViews(video.views)}
+                  timestamp={formatTimeAgo(video.created_at)}
+                  duration={video.duration || "00:00"}
+                  channelAvatar={video.channel_avatar}
+                  customLink={`/channel/video/${video.id}`}
+                />
+              </div>
             ))
           ) : (
             <p className="text-gray-500 col-span-full text-center">

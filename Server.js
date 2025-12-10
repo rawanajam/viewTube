@@ -1220,6 +1220,73 @@ app.get("/api/admin/analytics", verifyAdmin,async (req, res) => {
   });
 });
 
+// ✅ Views per day (last 7 days)
+app.get("/api/admin/views-per-day", verifyAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        DATE(created_at) as date,
+        SUM(views) as views
+      FROM videos
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Views per day error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.put("/api/admin/delete-video/:id", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(
+      "UPDATE videos SET is_deleted = true WHERE id = $1",
+      [id]
+    );
+
+    res.json({ message: "Video deleted" });
+  } catch (err) {
+    console.error("Delete video error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.put("/api/admin/ban-video/:id", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(
+      "UPDATE videos SET status = 'banned' WHERE id = $1",
+      [id]
+    );
+
+    res.json({ message: "Video banned" });
+  } catch (err) {
+    console.error("Ban video error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+app.put("/api/admin/ban-channel/:id", verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await pool.query(
+      "UPDATE users SET is_banned = true WHERE id = $1",
+      [id]
+    );
+
+    res.json({ message: "Channel banned" });
+  } catch (err) {
+    console.error("Ban channel error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
