@@ -202,7 +202,18 @@ app.post("/api/admin-login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({ message: "Admin login successful", token, role: admin.role });
+    // 🚀 RETURN EVERYTHING THE FRONTEND NEEDS
+    res.json({
+      message: "Admin login successful",
+      token,
+      role: "admin",
+      user_id: admin.id,
+      username: admin.username || null,
+      avatar: admin.avatar || null,
+      created_at: admin.created_at || null,
+      channel_id: admin.channel_id || null
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Admin login error" });

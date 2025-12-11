@@ -19,9 +19,20 @@ export const Header = () => {
   // Load user from localStorage and react to changes
   useEffect(() => {
     const loadUser = () => {
-      const storedUser = localStorage.getItem("user");
       const storedUserId = localStorage.getItem("userId");
-      setUser(storedUser ? JSON.parse(storedUser) : null);
+      const storedUser = localStorage.getItem("user");
+        const role = localStorage.getItem("role");
+
+        if (role === "admin") {
+          setUser({
+            username: "Owner",
+            avatar: null,
+            role: "admin",
+          });
+        } else {
+          setUser(storedUser ? JSON.parse(storedUser) : null);
+        }
+
     };
 
     loadUser();
@@ -136,35 +147,32 @@ export const Header = () => {
             <NotificationsButton userId={user?.id} />
 
           <Button
-  variant="ghost"
-  size="icon"
-  className="rounded-full hover:bg-youtube-hover"
-  onClick={() => {
-    if (user) navigate("/user-home");
-    else navigate("/login");
-  }}
-  title={user?.username || "Login"}
->
-  {user ? (
-    user.avatar ? (
-      <img
-        src={user.avatar}
-        alt="avatar"
-        className="h-8 w-8 rounded-full object-cover"
-      />
-    ) : (
-      <div className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-white font-semibold">
-        {user.username?.charAt(0).toUpperCase() || "U"}
-      </div>
-    )
-  ) : (
-    <User className="h-6 w-6" />
-  )}
-</Button>
-
-
-
-
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-youtube-hover"
+            onClick={() => {
+              if (user?.role === "admin") navigate("/owner-dashboard");
+              else if (user) navigate("/user-home");
+              else navigate("/login");
+            }}
+            title={user?.username || "Login"}
+          >
+          {user ? (
+            user.avatar ? (
+              <img
+                src={user.avatar}
+                alt="avatar"
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 flex items-center justify-center rounded-full bg-primary text-white font-semibold">
+                {user.username?.charAt(0).toUpperCase() || "U"}
+              </div>
+            )
+          ) : (
+            <User className="h-6 w-6" />
+          )}
+        </Button>
       </div>
     </header>
   );

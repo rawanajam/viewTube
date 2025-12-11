@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { VideoCard } from "@/components/VideoCard";
 import {
   BarChart,
   Users,
@@ -8,26 +7,39 @@ import {
   Eye,
   Trash2,
   Ban,
+  LogOut
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { VideoCard } from "@/components/VideoCard";
 import { formatViews } from "./utils/formatViews";
 import { formatTimeAgo } from "./utils/formatTimeAgo";
 
 const OwnerDashboard = () => {
+  const navigate = useNavigate();
+
   const [channels, setChannels] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const [analytics, setAnalytics] = useState({
     totalChannels: 0,
     totalVideos: 0,
     totalViews: 0,
     totalUsers: 0,
   });
+
   const [selectedTab, setSelectedTab] = useState("Analytics");
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
   const token = localStorage.getItem("token");
+ const role = localStorage.getItem("role");
+const adminId = localStorage.getItem("user_id");
+
+useEffect(() => {
+  if (!token || role !== "admin") {
+    navigate("/login");
+  }
+}, [token, role]);
+
 
   const config = {
     headers: {
@@ -35,6 +47,9 @@ const OwnerDashboard = () => {
     },
   };
 
+  // ------------------------------
+  //  FETCH ADMIN DATA
+  // ------------------------------
   const fetchAllData = async () => {
     try {
       const channelsRes = await axios.get(
@@ -60,7 +75,13 @@ const OwnerDashboard = () => {
     }
   };
 
-  // ✅ DELETE VIDEO
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  // ------------------------------
+  // DELETE VIDEO
+  // ------------------------------
   const deleteVideo = async (id) => {
     try {
       await axios.put(
@@ -69,14 +90,15 @@ const OwnerDashboard = () => {
         config
       );
 
-      // remove from UI
       setVideos((prev) => prev.filter((v) => v.id !== id));
     } catch (err) {
       console.error("Delete failed:", err);
     }
   };
 
-  // ✅ BAN VIDEO
+  // ------------------------------
+  // BAN VIDEO
+  // ------------------------------
   const banVideo = async (id) => {
     try {
       await axios.put(
@@ -84,13 +106,15 @@ const OwnerDashboard = () => {
         {},
         config
       );
-      alert("Video banned ✅");
+      alert("Video banned");
     } catch (err) {
       console.error("Ban failed:", err);
     }
   };
 
-  // ✅ BAN CHANNEL
+  // ------------------------------
+  // BAN CHANNEL
+  // ------------------------------
   const banChannel = async (id) => {
     try {
       await axios.put(
@@ -99,28 +123,47 @@ const OwnerDashboard = () => {
         config
       );
 
-      // remove from UI
       setChannels((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Ban channel failed:", err);
     }
   };
 
+  // ------------------------------
+  // LOGOUT
+  // ------------------------------
+  const logout = () => {
+    localStorage.clear();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   return (
     <div className="w-full min-h-screen bg-background text-foreground pt-14 px-4">
 
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex items-center gap-4 py-6 border-b border-neutral-800">
-        <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl font-bold">
-          A
-        </div>
+        {/* Avatar */}
+          <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-3xl font-bold border-2 border-red-500 uppercase">
+            {"O"}
+          </div>
+
         <div>
           <h2 className="text-xl font-semibold">Owner Dashboard</h2>
           <p className="text-gray-400 text-sm">Platform control panel</p>
         </div>
+
+        <button
+          onClick={() => setShowLogoutConfirm(true)}
+          className="ml-auto bg-neutral-700 hover:bg-neutral-600 text-white font-semibold px-4 py-2 rounded flex items-center gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </button>
       </div>
 
-      {/* Tabs */}
+      {/* TABS */}
       <div className="flex gap-3 overflow-x-auto py-3 border-b border-neutral-800 sticky top-14 bg-background z-10">
         {[
           { icon: <BarChart className="h-4 w-4" />, label: "Analytics" },
@@ -180,7 +223,6 @@ const OwnerDashboard = () => {
                 key={ch.id}
                 className="bg-neutral-900 border border-neutral-700 p-4 rounded-lg relative group"
               >
-                {/* Admin Buttons */}
                 <div className="absolute top-3 right-3 hidden group-hover:flex gap-2">
                   <button
                     onClick={() => banChannel(ch.id)}
@@ -208,6 +250,7 @@ const OwnerDashboard = () => {
                     <p className="text-sm text-gray-400">ID: {ch.id}</p>
                   </div>
                 </div>
+
                 <p className="text-sm text-gray-400">
                   Total Videos: {ch.video_count}
                 </p>
@@ -227,7 +270,6 @@ const OwnerDashboard = () => {
           {videos.length > 0 ? (
             videos.map((video) => (
               <div key={video.id} className="relative group">
-                {/* Admin Buttons */}
                 <div className="absolute top-3 right-3 hidden group-hover:flex gap-2 z-10">
                   <button
                     onClick={() => deleteVideo(video.id)}
@@ -264,6 +306,34 @@ const OwnerDashboard = () => {
           )}
         </div>
       )}
+
+      {/* LOGOUT POPUP */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-80 text-center">
+            <h3 className="text-xl font-semibold mb-4 text-white">
+              Are you sure you want to logout?
+            </h3>
+
+            <div className="flex gap-3">
+              <button
+                onClick={logout}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded"
+              >
+                Yes, Logout
+              </button>
+
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
