@@ -7,7 +7,7 @@ import {
   Eye,
   Trash2,
   Ban,
-  LogOut
+  LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { VideoCard } from "@/components/VideoCard";
@@ -20,6 +20,7 @@ const OwnerDashboard = () => {
   const [channels, setChannels] = useState([]);
   const [videos, setVideos] = useState([]);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("Analytics");
 
   const [analytics, setAnalytics] = useState({
     totalChannels: 0,
@@ -28,18 +29,14 @@ const OwnerDashboard = () => {
     totalUsers: 0,
   });
 
-  const [selectedTab, setSelectedTab] = useState("Analytics");
-
   const token = localStorage.getItem("token");
- const role = localStorage.getItem("role");
-const adminId = localStorage.getItem("user_id");
+  const role = localStorage.getItem("role");
 
-useEffect(() => {
-  if (!token || role !== "admin") {
-    navigate("/login");
-  }
-}, [token, role]);
-
+  useEffect(() => {
+    if (!token || role !== "admin") {
+      navigate("/login");
+    }
+  }, [token, role, navigate]);
 
   const config = {
     headers: {
@@ -48,24 +45,15 @@ useEffect(() => {
   };
 
   // ------------------------------
-  //  FETCH ADMIN DATA
+  // FETCH DATA
   // ------------------------------
   const fetchAllData = async () => {
     try {
-      const channelsRes = await axios.get(
-        "http://localhost:5000/api/admin/channels",
-        config
-      );
-
-      const videosRes = await axios.get(
-        "http://localhost:5000/api/admin/videos",
-        config
-      );
-
-      const statsRes = await axios.get(
-        "http://localhost:5000/api/admin/analytics",
-        config
-      );
+      const [channelsRes, videosRes, statsRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/admin/channels", config),
+        axios.get("http://localhost:5000/api/admin/videos", config),
+        axios.get("http://localhost:5000/api/admin/analytics", config),
+      ]);
 
       setChannels(channelsRes.data);
       setVideos(videosRes.data);
@@ -89,10 +77,9 @@ useEffect(() => {
         {},
         config
       );
-
       setVideos((prev) => prev.filter((v) => v.id !== id));
     } catch (err) {
-      console.error("Delete failed:", err);
+      console.error(err);
     }
   };
 
@@ -106,16 +93,22 @@ useEffect(() => {
         {},
         config
       );
-      alert("Video banned");
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.id === id ? { ...v, status: "banned" } : v
+        )
+      );
     } catch (err) {
-      console.error("Ban failed:", err);
+      console.error(err);
     }
   };
 
   // ------------------------------
   // BAN CHANNEL
   // ------------------------------
-  const banChannel = async (id) => {
+  const banChannel = async (e, id) => {
+    e.stopPropagation(); // 🔥 prevent navigation
+
     try {
       await axios.put(
         `http://localhost:5000/api/admin/ban-channel/${id}`,
@@ -123,9 +116,19 @@ useEffect(() => {
         config
       );
 
-      setChannels((prev) => prev.filter((c) => c.id !== id));
+      setChannels((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, status: "banned" } : c
+        )
+      );
+
+      setVideos((prev) =>
+        prev.map((v) =>
+          v.channel_id === id ? { ...v, status: "banned" } : v
+        )
+      );
     } catch (err) {
-      console.error("Ban channel failed:", err);
+      console.error(err);
     }
   };
 
@@ -134,8 +137,6 @@ useEffect(() => {
   // ------------------------------
   const logout = () => {
     localStorage.clear();
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
     navigate("/login");
   };
 
@@ -144,10 +145,9 @@ useEffect(() => {
 
       {/* HEADER */}
       <div className="flex items-center gap-4 py-6 border-b border-neutral-800">
-        {/* Avatar */}
-          <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-3xl font-bold border-2 border-red-500 uppercase">
-            {"O"}
-          </div>
+        <div className="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center text-white text-3xl font-bold">
+          O
+        </div>
 
         <div>
           <h2 className="text-xl font-semibold">Owner Dashboard</h2>
@@ -156,109 +156,114 @@ useEffect(() => {
 
         <button
           onClick={() => setShowLogoutConfirm(true)}
-          className="ml-auto bg-neutral-700 hover:bg-neutral-600 text-white font-semibold px-4 py-2 rounded flex items-center gap-2"
+          className="ml-auto bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded flex items-center gap-2"
         >
-          <LogOut className="h-4 w-4" />
-          Logout
+          <LogOut size={16} /> Logout
         </button>
       </div>
 
       {/* TABS */}
-      <div className="flex gap-3 overflow-x-auto py-3 border-b border-neutral-800 sticky top-14 bg-background z-10">
-        {[
-          { icon: <BarChart className="h-4 w-4" />, label: "Analytics" },
-          { icon: <Users className="h-4 w-4" />, label: "Channels" },
-          { icon: <Video className="h-4 w-4" />, label: "Videos" },
-        ].map((tab, i) => (
+      <div className="flex gap-3 py-3 border-b border-neutral-800 sticky top-14 bg-background z-10">
+        {["Analytics", "Channels", "Videos"].map((tab) => (
           <button
-            key={i}
-            onClick={() => setSelectedTab(tab.label)}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm
-              ${
-                selectedTab === tab.label
-                  ? "bg-red-600 text-white"
-                  : "bg-neutral-800 hover:bg-neutral-700 text-gray-200"
-              }`}
+            key={tab}
+            onClick={() => setSelectedTab(tab)}
+            className={`px-4 py-2 rounded-full text-sm ${
+              selectedTab === tab
+                ? "bg-red-600 text-white"
+                : "bg-neutral-800 hover:bg-neutral-700"
+            }`}
           >
-            {tab.icon} {tab.label}
+            {tab}
           </button>
         ))}
       </div>
+        {/* ANALYTICS / STATISTICS */}
+{selectedTab === "Analytics" && (
+  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
+    <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
+      <p className="text-gray-400 text-sm">Total Channels</p>
+      <h2 className="text-3xl font-bold">{analytics.totalChannels}</h2>
+    </div>
 
-      {/* ANALYTICS */}
-      {selectedTab === "Analytics" && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mt-6">
-          <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
-            <p className="text-gray-400 text-sm">Total Channels</p>
-            <h2 className="text-3xl font-bold">{analytics.totalChannels}</h2>
-          </div>
+    <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
+      <p className="text-gray-400 text-sm">Total Videos</p>
+      <h2 className="text-3xl font-bold">{analytics.totalVideos}</h2>
+    </div>
 
-          <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
-            <p className="text-gray-400 text-sm">Total Videos</p>
-            <h2 className="text-3xl font-bold">{analytics.totalVideos}</h2>
-          </div>
+    <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
+      <p className="text-gray-400 text-sm flex items-center gap-1">
+        <Eye className="h-4 w-4" /> Total Views
+      </p>
+      <h2 className="text-3xl font-bold">
+        {formatViews(analytics.totalViews)}
+      </h2>
+    </div>
 
-          <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
-            <p className="text-gray-400 text-sm flex items-center gap-1">
-              <Eye className="h-4 w-4" /> Total Views
-            </p>
-            <h2 className="text-3xl font-bold">
-              {formatViews(analytics.totalViews)}
-            </h2>
-          </div>
-
-          <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
-            <p className="text-gray-400 text-sm">Total Users</p>
-            <h2 className="text-3xl font-bold">{analytics.totalUsers}</h2>
-          </div>
-        </div>
-      )}
+    <div className="bg-neutral-900 border border-neutral-700 p-5 rounded-lg">
+      <p className="text-gray-400 text-sm">Total Users</p>
+      <h2 className="text-3xl font-bold">{analytics.totalUsers}</h2>
+    </div>
+  </div>
+)}
 
       {/* CHANNELS TAB */}
       {selectedTab === "Channels" && (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mt-6">
-          {channels.length > 0 ? (
+          {channels.length ? (
             channels.map((ch) => (
               <div
                 key={ch.id}
-                className="bg-neutral-900 border border-neutral-700 p-4 rounded-lg relative group"
+                onClick={() => navigate(`/channel/${ch.id}`)} // ✅ OPEN CHANNEL
+                className="bg-neutral-900 border border-neutral-700 p-4 rounded-lg relative cursor-pointer hover:border-red-600 transition"
               >
-                <div className="absolute top-3 right-3 hidden group-hover:flex gap-2">
-                  <button
-                    onClick={() => banChannel(ch.id)}
-                    className="bg-yellow-600 p-2 rounded-lg hover:bg-yellow-700"
-                  >
-                    <Ban size={16} />
-                  </button>
+                {/* Ban / Status */}
+                <div className="absolute top-3 right-3">
+                  {ch.status !== "banned" ? (
+                    <button
+                      onClick={(e) => banChannel(e, ch.id)}
+                      className="bg-yellow-600 p-2 rounded hover:bg-yellow-700"
+                    >
+                      <Ban size={16} />
+                    </button>
+                  ) : (
+                    <span className="text-xs bg-red-600 text-white px-2 py-1 rounded">
+                      BANNED
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3 mb-3">
+                {/* Channel info */}
+                <div className="flex items-center gap-3">
                   {ch.avatar ? (
                     <img
                       src={ch.avatar}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-12 h-12 rounded-full"
                       alt={ch.name}
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-lg uppercase">
+                    <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
                       {ch.name?.charAt(0) || "U"}
                     </div>
                   )}
 
                   <div>
                     <p className="font-semibold">{ch.name}</p>
-                    <p className="text-sm text-gray-400">ID: {ch.id}</p>
+                    {ch.status === "banned" && (
+                      <p className="text-xs text-red-500 font-semibold">
+                        Channel Banned
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-400">
+                      Videos: {ch.video_count}
+                    </p>
                   </div>
                 </div>
-
-                <p className="text-sm text-gray-400">
-                  Total Videos: {ch.video_count}
-                </p>
               </div>
             ))
           ) : (
             <p className="text-gray-500 col-span-full text-center">
-              No channels available
+              No channels found
             </p>
           )}
         </div>
@@ -267,65 +272,62 @@ useEffect(() => {
       {/* VIDEOS TAB */}
       {selectedTab === "Videos" && (
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 mt-6">
-          {videos.length > 0 ? (
-            videos.map((video) => (
-              <div key={video.id} className="relative group">
+          {videos.map((video) => (
+            <div
+              key={video.id}
+              className={`relative group ${
+                video.status === "banned" ? "opacity-60" : ""
+              }`}
+            >
+              {video.status === "banned" && (
+                <div className="absolute bottom-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded z-10">
+                  BANNED
+                </div>
+              )}
+
+              {video.status !== "banned" && (
                 <div className="absolute top-3 right-3 hidden group-hover:flex gap-2 z-10">
                   <button
                     onClick={() => deleteVideo(video.id)}
-                    className="bg-red-600 p-2 rounded-lg hover:bg-red-700"
+                    className="bg-red-600 p-2 rounded hover:bg-red-700"
                   >
                     <Trash2 size={16} />
                   </button>
-
                   <button
                     onClick={() => banVideo(video.id)}
-                    className="bg-yellow-600 p-2 rounded-lg hover:bg-yellow-700"
+                    className="bg-yellow-600 p-2 rounded hover:bg-yellow-700"
                   >
                     <Ban size={16} />
                   </button>
                 </div>
+              )}
 
-                <VideoCard
-                  id={video.id}
-                  thumbnail={video.thumbnail}
-                  title={video.title}
-                  channel={video.channel}
-                  views={formatViews(video.views)}
-                  timestamp={formatTimeAgo(video.created_at)}
-                  duration={video.duration || "00:00"}
-                  channelAvatar={video.channel_avatar}
-                  customLink={`/channel/video/${video.id}`}
-                />
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500 col-span-full text-center">
-              No videos found
-            </p>
-          )}
+              <VideoCard
+                {...video}
+                views={formatViews(video.views)}
+                timestamp={formatTimeAgo(video.created_at)}
+                customLink={`/channel/video/${video.id}`}
+              />
+            </div>
+          ))}
         </div>
       )}
 
-      {/* LOGOUT POPUP */}
+      {/* LOGOUT MODAL */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 w-80 text-center">
-            <h3 className="text-xl font-semibold mb-4 text-white">
-              Are you sure you want to logout?
-            </h3>
-
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
+          <div className="bg-neutral-900 p-6 rounded-lg w-80 text-center">
+            <h3 className="text-lg mb-4">Logout?</h3>
             <div className="flex gap-3">
               <button
                 onClick={logout}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded"
+                className="w-full bg-red-600 py-2 rounded"
               >
-                Yes, Logout
+                Logout
               </button>
-
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded"
+                className="w-full bg-neutral-700 py-2 rounded"
               >
                 Cancel
               </button>

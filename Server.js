@@ -1268,35 +1268,50 @@ app.put("/api/admin/delete-video/:id", verifyAdmin, async (req, res) => {
 });
 
 app.put("/api/admin/ban-video/:id", verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  const { reason } = req.body;
 
-    await pool.query(
-      "UPDATE videos SET status = 'banned' WHERE id = $1",
-      [id]
-    );
+  await pool.query(
+    `UPDATE videos 
+     SET status='banned', banned_at=NOW(), banned_by=$2, ban_reason=$3
+     WHERE id=$1`,
+    [id, req.user.id, reason || null]
+  );
 
-    res.json({ message: "Video banned" });
-  } catch (err) {
-    console.error("Ban video error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+  await pool.query(
+    `INSERT INTO ban_logs (target_type, target_id, admin_id, reason)
+     VALUES ('video', $1, $2, $3)`,
+    [id, req.user.id, reason || null]
+  );
+
+  res.json({ message: "Video banned" });
 });
 app.put("/api/admin/ban-channel/:id", verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
+  const { reason } = req.body;
 
-    await pool.query(
-      "UPDATE users SET is_banned = true WHERE id = $1",
-      [id]
-    );
+  await pool.query(
+    `UPDATE channels 
+     SET status='banned', banned_at=NOW(), banned_by=$2, ban_reason=$3
+     WHERE id=$1`,
+    [id, req.user.id, reason || null]
+  );
 
-    res.json({ message: "Channel banned" });
-  } catch (err) {
-    console.error("Ban channel error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+  // 🔥 Hide all videos of this channel
+  await pool.query(
+    `UPDATE videos SET status='banned' WHERE channel_id=$1`,
+    [id]
+  );
+
+  await pool.query(
+    `INSERT INTO ban_logs (target_type, target_id, admin_id, reason)
+     VALUES ('channel', $1, $2, $3)`,
+    [id, req.user.id, reason || null]
+  );
+
+  res.json({ message: "Channel banned" });
 });
+
 
 
 const PORT = process.env.PORT || 5000;

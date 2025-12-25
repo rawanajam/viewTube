@@ -16,6 +16,12 @@ const VideoPage = () => {
   const [showAllComments, setShowAllComments] = useState(false);
   const [recommended, setRecommended] = useState([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  // ===== REPORT VIDEO =====
+const [showReportModal, setShowReportModal] = useState(false);
+const [reportReason, setReportReason] = useState("");
+const [reportDetails, setReportDetails] = useState("");
+const [reportLoading, setReportLoading] = useState(false);
+
 
   const userId = localStorage.getItem("user_id");
 
@@ -163,6 +169,33 @@ const handleDownload = async () => {
     }
   };
 
+  const handleReportVideo = async () => {
+  if (!userId) return alert("Please login to report this video.");
+  if (!reportReason) return alert("Please select a reason.");
+
+  try {
+    setReportLoading(true);
+
+    await axios.post("http://localhost:5000/api/reports/video", {
+      user_id: userId,
+      video_id: id,
+      reason: reportReason,
+      details: reportDetails,
+    });
+
+    alert("Report submitted successfully.");
+    setShowReportModal(false);
+    setReportReason("");
+    setReportDetails("");
+  } catch (err) {
+    console.error(err);
+    alert("You already reported this video or an error occurred.");
+  } finally {
+    setReportLoading(false);
+  }
+};
+
+
   if (!video) return <div className="pt-14 text-center text-white">Loading...</div>;
 
   return (
@@ -229,6 +262,12 @@ const handleDownload = async () => {
               }`}
             >
               <PlaySquare size={18} /> {isSubscribed ? "Subscribed" : "Subscribe"}
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-900/40 text-red-400 hover:bg-red-900/60 transition"
+            >
+              🚩 Report
             </button>
 
 
@@ -327,6 +366,53 @@ const handleDownload = async () => {
           </div>
         </div>
       </div>
+      {showReportModal && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md">
+      <h2 className="text-lg font-semibold mb-4">Report Video</h2>
+
+      <select
+        value={reportReason}
+        onChange={(e) => setReportReason(e.target.value)}
+        className="w-full p-2 mb-3 rounded bg-gray-800 text-white"
+      >
+        <option value="">Select reason</option>
+        <option value="Spam or misleading">Spam or misleading</option>
+        <option value="Hate or harassment">Hate or harassment</option>
+        <option value="Violence or dangerous acts">Violence or dangerous acts</option>
+        <option value="Sexual content">Sexual content</option>
+        <option value="Copyright infringement">Copyright infringement</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <textarea
+        placeholder="Additional details (optional)"
+        value={reportDetails}
+        onChange={(e) => setReportDetails(e.target.value)}
+        className="w-full p-2 mb-4 rounded bg-gray-800 text-white"
+        rows={3}
+      />
+
+      <div className="flex justify-end gap-3">
+        <button
+          onClick={() => setShowReportModal(false)}
+          className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleReportVideo}
+          disabled={reportLoading}
+          className="px-4 py-2 rounded bg-red-600 text-black font-semibold hover:bg-red-500"
+        >
+          {reportLoading ? "Sending..." : "Submit"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </main>
   );
 };
